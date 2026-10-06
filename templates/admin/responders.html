@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Emergency Responders Management{% endblock %}
+{% block page_title %}Emergency Responders On Duty{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Responders Table -->
+  <div class="col-lg-8">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-people-fill text-primary"></i> Active Emergency Teams & Personnel
+        </h3>
+        <span class="badge bg-secondary-subtle text-secondary">{{ responders.count }} Responders</span>
+      </div>
+      <div class="rg-card-body p-0">
+        <div class="rg-table-wrapper border-0">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th>Responder Name</th>
+                <th>Team & Force</th>
+                <th>Contact</th>
+                <th>Current Base</th>
+                <th>Status</th>
+                <th class="text-end">Update Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if responders %}
+                {% for rp in responders %}
+                  <tr>
+                    <td><strong>{{ rp.name }}</strong></td>
+                    <td>
+                      <div>{{ rp.team_name }}</div>
+                      <div class="text-muted small">{{ rp.get_responder_type_display }}</div>
+                    </td>
+                    <td>{{ rp.phone }}</td>
+                    <td>{{ rp.current_location_name|default:"Base Depot" }}</td>
+                    <td>
+                      <span class="badge {% if rp.status == 'Available' %}bg-success-subtle text-success border-success-subtle{% elif rp.status == 'Deployed' %}bg-danger-subtle text-danger border-danger-subtle{% else %}bg-secondary-subtle text-secondary{% endif %} border">
+                        {{ rp.status }}
+                      </span>
+                    </td>
+                    <td class="text-end">
+                      <form method="post" action="{% url 'admin_responders' %}" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_status">
+                        <input type="hidden" name="responder_id" value="{{ rp.id }}">
+                        <select name="status" class="form-select form-select-sm py-0" style="width: auto; font-size: 0.78rem;">
+                          {% for code, label in STATUS_CHOICES %}
+                            <option value="{{ code }}" {% if rp.status == code %}selected{% endif %}>{{ code }}</option>
+                          {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-rg-outline-orange py-0 px-2" style="font-size: 0.78rem;">Save</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">No responders logged.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register New Responder -->
+  <div class="col-lg-4">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-person-plus-fill text-warning"></i> Register Responder Team
+        </h3>
+      </div>
+      <div class="rg-card-body">
+        <form method="post" action="{% url 'admin_responders' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Commander / Officer Name *</label>
+            <input type="text" name="name" class="form-control form-control-sm" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Force / Organization *</label>
+            <select name="responder_type" class="form-select form-select-sm" required>
+              {% for code, label in RESPONDER_TYPES %}
+                <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Team / Unit Code *</label>
+            <input type="text" name="team_name" class="form-control form-control-sm" placeholder="e.g. NDRF Battalion 04 - Unit A" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Emergency Phone *</label>
+            <input type="text" name="phone" class="form-control form-control-sm" placeholder="+91 94440 XXXXX" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Current Staging Base</label>
+            <input type="text" name="location_name" class="form-control form-control-sm" value="Arakkonam Command Base">
+          </div>
+
+          <button type="submit" class="btn btn-rg-primary btn-sm w-100 fw-bold">
+            Register On-Duty Responder
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

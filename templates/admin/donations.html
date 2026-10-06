@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Donations Pipeline Management{% endblock %}
+{% block page_title %}Relief Donations Pipeline{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-heart-pulse-fill text-danger"></i> Relief Supply Contributions Pipeline
+    </h3>
+    <span class="badge bg-secondary-subtle text-secondary">{{ donations.count }} Pledges</span>
+  </div>
+  <div class="rg-card-body">
+    <!-- Filter bar -->
+    <form method="get" class="rg-filter-bar">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="small fw-semibold text-muted">Status:</label>
+        <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          {% for code, label in STATUS_CHOICES %}
+            <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if status_filter %}
+          <a href="{% url 'admin_donations' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Donor Details</th>
+            <th>Item Donated</th>
+            <th>Quantity</th>
+            <th>Target Region</th>
+            <th>Status</th>
+            <th>Date Pledged</th>
+            <th class="text-end">Update Pipeline Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if donations %}
+            {% for d in donations %}
+              <tr>
+                <td><strong>{{ d.tracking_code }}</strong></td>
+                <td>
+                  <strong>{{ d.donor.get_full_name|default:d.donor.username }}</strong>
+                  <div class="text-muted small">{{ d.donor.phone|default:"No phone" }}</div>
+                </td>
+                <td>
+                  <strong>{{ d.item_name }}</strong>
+                  <div class="text-muted small">{{ d.get_category_display }}</div>
+                </td>
+                <td><strong>{{ d.quantity }}</strong> {{ d.unit }}</td>
+                <td>{{ d.target_region }}</td>
+                <td>
+                  <span class="rg-badge rg-badge-{{ d.status|lower }}">{{ d.status }}</span>
+                </td>
+                <td class="text-muted small">{{ d.created_at|date:"d M H:i" }}</td>
+                <td class="text-end">
+                  <form method="post" action="{% url 'admin_update_donation_status' d.tracking_code %}" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                    {% csrf_token %}
+                    <select name="status" class="form-select form-select-sm py-0" style="width: auto; font-size: 0.78rem;">
+                      {% for code, label in STATUS_CHOICES %}
+                        <option value="{{ code }}" {% if d.status == code %}selected{% endif %}>{{ code }}</option>
+                      {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-rg-outline-orange py-0 px-2" style="font-size: 0.78rem;">
+                      Save
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No donations found in this pipeline state.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

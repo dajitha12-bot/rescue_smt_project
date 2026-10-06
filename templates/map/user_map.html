@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Nearby Emergencies & Facilities Map{% endblock %}
+{% block page_title %}Nearby Emergencies & Shelters Map{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <div class="d-flex align-items-center gap-2">
+      <h3 class="rg-card-title">
+        <i class="bi bi-geo-alt-fill text-danger"></i> Interactive Regional Safety & Resources Map
+      </h3>
+      <span class="badge bg-light text-dark border">State of Tamil Nadu</span>
+    </div>
+    <a href="{% url 'request_help' %}" class="btn btn-sm btn-rg-primary">
+      <i class="bi bi-exclamation-octagon me-1"></i> Request Help Here
+    </a>
+  </div>
+  <div class="rg-card-body p-0">
+    <div id="userMap" class="rg-map-container" style="height: 560px;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('userMap').setView([11.1271, 78.6569], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    fetch('/api/map/layers/?region=tamil_nadu')
+      .then(r => r.json())
+      .then(data => {
+        // Render Emergencies
+        data.emergencies.forEach(em => {
+          const m = L.circleMarker([em.lat, em.lon], {
+            radius: 8,
+            fillColor: em.priority_classification === 'Critical' ? '#DC2626' : '#FE8D01',
+            color: '#000',
+            weight: 1,
+            fillOpacity: 0.9
+          }).addTo(map);
+          m.bindPopup(`
+            <div style="font-size: 12px;">
+              <span class="badge bg-danger">Emergency Incident</span>
+              <strong style="display: block; margin-top: 4px;">${em.category}</strong>
+              <div>${em.address} (${em.district})</div>
+              <div>Affected: ${em.affected_people} persons</div>
+              <div>Status: ${em.status}</div>
+            </div>
+          `);
+        });
+
+        // Render Hospitals
+        data.hospitals.forEach(h => {
+          const m = L.circleMarker([h.lat, h.lon], {
+            radius: 6,
+            fillColor: '#2563EB',
+            color: '#FFF',
+            weight: 2,
+            fillOpacity: 0.85
+          }).addTo(map);
+          m.bindPopup(`
+            <div style="font-size: 12px;">
+              <strong style="color: #2563EB;">${h.name}</strong>
+              <div>${h.address}</div>
+              <div>Available Beds: <strong>${h.available_beds}</strong> (ICU: ${h.icu_beds})</div>
+              <div>Phone: ${h.phone}</div>
+            </div>
+          `);
+        });
+
+        // Render Shelters
+        data.shelters.forEach(s => {
+          const m = L.circleMarker([s.lat, s.lon], {
+            radius: 6,
+            fillColor: '#059669',
+            color: '#FFF',
+            weight: 2,
+            fillOpacity: 0.85
+          }).addTo(map);
+          m.bindPopup(`
+            <div style="font-size: 12px;">
+              <strong style="color: #059669;">${s.name}</strong>
+              <div>${s.address}</div>
+              <div>Available Capacity: <strong>${s.available_capacity} spaces</strong></div>
+              <div>Contact: ${s.phone}</div>
+            </div>
+          `);
+        });
+      });
+  });
+</script>
+{% endblock %}

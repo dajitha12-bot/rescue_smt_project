@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory & Resources Management{% endblock %}
+{% block page_title %}Resource Inventory & Depot Stock{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Stock List -->
+  <div class="col-lg-8">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-boxes text-warning"></i> Active Relief Stock in State Depots
+        </h3>
+        <span class="badge bg-secondary-subtle text-secondary">{{ resources.count }} Stock Categories</span>
+      </div>
+      <div class="rg-card-body p-0">
+        <div class="rg-table-wrapper border-0">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th>Resource Name</th>
+                <th>Category</th>
+                <th>Stock Available</th>
+                <th>Depot Location</th>
+                <th>District</th>
+                <th>Last Restocked</th>
+                <th class="text-end">Restock</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if resources %}
+                {% for r in resources %}
+                  <tr>
+                    <td><strong>{{ r.name }}</strong></td>
+                    <td><span class="badge bg-light text-dark border">{{ r.get_category_display }}</span></td>
+                    <td>
+                      <span class="fw-bold {% if r.quantity_available > 20 %}text-success{% else %}text-danger{% endif %}">
+                        {{ r.quantity_available }}
+                      </span> {{ r.unit }}
+                    </td>
+                    <td>{{ r.storage_location }}</td>
+                    <td>{{ r.district }}</td>
+                    <td class="text-muted small">{{ r.last_restocked|date:"d M H:i" }}</td>
+                    <td class="text-end">
+                      <!-- Quick Restock Form -->
+                      <form method="post" action="{% url 'admin_resources' %}" class="d-inline-flex align-items-center gap-1 justify-content-end">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="restock">
+                        <input type="hidden" name="resource_id" value="{{ r.id }}">
+                        <input type="number" name="add_quantity" value="50" min="1" class="form-control form-control-sm text-center py-0" style="width: 65px;">
+                        <button type="submit" class="btn btn-sm btn-rg-outline-orange py-0 px-2" title="Add to stock">
+                          +Add
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">
+                    No resources currently logged in inventory.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add New Resource Item Form -->
+  <div class="col-lg-4">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-plus-circle text-primary"></i> Register New Stock Item
+        </h3>
+      </div>
+      <div class="rg-card-body">
+        <form method="post" action="{% url 'admin_resources' %}">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add">
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Item Name *</label>
+            <input type="text" name="name" class="form-control form-control-sm" placeholder="e.g. Inflatable Rescue Boat" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Category *</label>
+            <select name="category" class="form-select form-select-sm" required>
+              {% for code, label in categories %}
+                <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Initial Quantity *</label>
+              <input type="number" name="quantity" class="form-control form-control-sm" value="100" min="0" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Unit *</label>
+              <input type="text" name="unit" class="form-control form-control-sm" value="units" placeholder="e.g. kits, liters" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Depot Storage Location *</label>
+            <input type="text" name="storage_location" class="form-control form-control-sm" placeholder="e.g. State Central Relief Depot" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">District *</label>
+            <input type="text" name="district" class="form-control form-control-sm" value="Chennai" required>
+          </div>
+
+          <button type="submit" class="btn btn-rg-primary btn-sm w-100 fw-bold">
+            <i class="bi bi-check2-circle me-1"></i> Add to Inventory
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

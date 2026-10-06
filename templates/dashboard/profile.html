@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Account Profile & Settings{% endblock %}
+{% block page_title %}Profile & Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-person-badge text-warning"></i> Operational Account Profile
+        </h3>
+        <span class="badge bg-light text-dark border">{{ user_obj.get_role_display_badge }}</span>
+      </div>
+      <div class="rg-card-body">
+        <form method="post" action="{% url 'user_profile' %}">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Username</label>
+              <input type="text" class="form-control form-control-sm bg-light" value="{{ user_obj.username }}" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Role & Subtype</label>
+              <input type="text" class="form-control form-control-sm bg-light" value="{{ user_obj.get_role_display }} - {{ user_obj.get_user_subtype_display }}" readonly>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">First Name</label>
+              <input type="text" name="first_name" class="form-control form-control-sm" value="{{ user_obj.first_name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Last Name</label>
+              <input type="text" name="last_name" class="form-control form-control-sm" value="{{ user_obj.last_name }}">
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Email Address</label>
+              <input type="email" name="email" class="form-control form-control-sm" value="{{ user_obj.email }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Emergency Phone</label>
+              <input type="tel" name="phone" class="form-control form-control-sm" value="{{ user_obj.phone }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Organization / Facility Name</label>
+            <input type="text" name="organization_name" class="form-control form-control-sm" value="{{ user_obj.organization_name }}">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">District</label>
+              <input type="text" name="district" class="form-control form-control-sm" value="{{ user_obj.district }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">State</label>
+              <input type="text" name="state" class="form-control form-control-sm" value="{{ user_obj.state }}">
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Base Physical Address</label>
+            <textarea name="address" class="form-control form-control-sm" rows="2">{{ user_obj.address }}</textarea>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Latitude</label>
+              <input type="text" name="latitude" class="form-control form-control-sm" value="{{ user_obj.latitude|default:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Longitude</label>
+              <input type="text" name="longitude" class="form-control form-control-sm" value="{{ user_obj.longitude|default:'' }}">
+            </div>
+          </div>
+
+          <!-- HOSPITAL FACILITY SETTINGS (If hospital user) -->
+          {% if hospital_record %}
+            <div class="p-3 bg-info-subtle bg-opacity-25 border border-info rounded mb-4">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-hospital text-info me-1"></i> Hospital Capacity & Resource Availability</h6>
+              <div class="row g-3">
+                <div class="col-6 col-md-3">
+                  <label class="form-label small fw-semibold">Total Beds</label>
+                  <input type="number" name="total_beds" class="form-control form-control-sm" value="{{ hospital_record.total_beds }}">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small fw-semibold">Available Beds</label>
+                  <input type="number" name="available_beds" class="form-control form-control-sm" value="{{ hospital_record.available_beds }}">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small fw-semibold">ICU Beds Free</label>
+                  <input type="number" name="icu_beds_available" class="form-control form-control-sm" value="{{ hospital_record.icu_beds_available }}">
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label small fw-semibold">Oxygen (Liters)</label>
+                  <input type="number" name="oxygen_available_liters" class="form-control form-control-sm" value="{{ hospital_record.oxygen_available_liters }}">
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <button type="submit" class="btn btn-rg-primary py-2 px-4 fw-bold">
+            <i class="bi bi-check2-circle me-1"></i> Save Profile Details
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

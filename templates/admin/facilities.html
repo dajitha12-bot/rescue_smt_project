@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospitals & Shelters Directory{% endblock %}
+{% block page_title %}Medical Centers & Relief Shelters{% endblock %}
+
+{% block content %}
+<ul class="nav nav-tabs mb-4" id="facilityTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active fw-bold text-dark" id="hospitals-tab" data-bs-toggle="tab" data-bs-target="#hospitals-pane" type="button" role="tab">
+      <i class="bi bi-hospital text-info me-1"></i> Hospitals ({{ hospitals.count }})
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link fw-bold text-dark" id="shelters-tab" data-bs-toggle="tab" data-bs-target="#shelters-pane" type="button" role="tab">
+      <i class="bi bi-houses text-primary me-1"></i> Shelters ({{ shelters.count }})
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link fw-bold text-dark" id="add-tab" data-bs-toggle="tab" data-bs-target="#add-pane" type="button" role="tab">
+      <i class="bi bi-plus-circle-fill text-warning me-1"></i> Register New Facility
+    </button>
+  </li>
+</ul>
+
+<div class="tab-content" id="facilityTabContent">
+  <!-- HOSPITALS PANE -->
+  <div class="tab-pane fade show active" id="hospitals-pane" role="tabpanel">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-hospital-fill text-info"></i> Hospital Bed Capacities & Medical Readiness
+        </h3>
+      </div>
+      <div class="rg-card-body p-0">
+        <div class="rg-table-wrapper border-0">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th>Hospital Name</th>
+                <th>District</th>
+                <th>Total Beds</th>
+                <th>Available Beds</th>
+                <th>ICU Beds</th>
+                <th>Oxygen Supply</th>
+                <th>Ambulances</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if hospitals %}
+                {% for h in hospitals %}
+                  <tr>
+                    <td>
+                      <strong>{{ h.name }}</strong>
+                      <div class="text-muted small">{{ h.hospital_type }}</div>
+                    </td>
+                    <td>{{ h.district }}, {{ h.state }}</td>
+                    <td>{{ h.total_beds }}</td>
+                    <td>
+                      <span class="badge {% if h.available_beds > 5 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} border">
+                        {{ h.available_beds }} available
+                      </span>
+                    </td>
+                    <td><strong class="text-danger">{{ h.icu_beds_available }}</strong></td>
+                    <td><strong class="text-primary">{{ h.oxygen_available_liters }} L</strong></td>
+                    <td>{{ h.ambulances_available }}</td>
+                    <td>{{ h.phone }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted">No hospitals registered yet.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHELTERS PANE -->
+  <div class="tab-pane fade" id="shelters-pane" role="tabpanel">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-houses-fill text-primary"></i> Relief Shelters & Capacity Management
+        </h3>
+      </div>
+      <div class="rg-card-body p-0">
+        <div class="rg-table-wrapper border-0">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th>Shelter Name</th>
+                <th>District</th>
+                <th>Manager</th>
+                <th>Phone</th>
+                <th>Capacity</th>
+                <th>Current Occupancy</th>
+                <th>Spaces Available</th>
+                <th>Facilities</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if shelters %}
+                {% for s in shelters %}
+                  <tr>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td>{{ s.district }}, {{ s.state }}</td>
+                    <td>{{ s.manager_name }}</td>
+                    <td>{{ s.phone }}</td>
+                    <td>{{ s.total_capacity }}</td>
+                    <td>{{ s.current_occupancy }}</td>
+                    <td>
+                      <span class="badge bg-success-subtle text-success border">
+                        {{ s.available_capacity }} Open
+                      </span>
+                    </td>
+                    <td class="small text-muted">{{ s.facilities_description|truncatewords:8 }}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted">No shelters registered yet.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER NEW FACILITY PANE -->
+  <div class="tab-pane fade" id="add-pane" role="tabpanel">
+    <div class="row g-3">
+      <!-- Add Hospital -->
+      <div class="col-lg-6">
+        <div class="rg-card">
+          <div class="rg-card-header">
+            <h3 class="rg-card-title"><i class="bi bi-hospital text-info"></i> Register Hospital</h3>
+          </div>
+          <div class="rg-card-body">
+            <form method="post" action="{% url 'admin_facilities' %}">
+              {% csrf_token %}
+              <input type="hidden" name="facility_type" value="hospital">
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Hospital Name *</label>
+                <input type="text" name="name" class="form-control form-control-sm" required>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Type</label>
+                  <input type="text" name="hospital_type" class="form-control form-control-sm" value="District General Hospital">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Phone *</label>
+                  <input type="text" name="phone" class="form-control form-control-sm" required>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">District *</label>
+                  <input type="text" name="district" class="form-control form-control-sm" value="Chennai" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Address *</label>
+                  <input type="text" name="address" class="form-control form-control-sm" required>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-3">
+                  <label class="form-label small fw-semibold">Total Beds</label>
+                  <input type="number" name="total_beds" class="form-control form-control-sm" value="100">
+                </div>
+                <div class="col-3">
+                  <label class="form-label small fw-semibold">Available</label>
+                  <input type="number" name="available_beds" class="form-control form-control-sm" value="25">
+                </div>
+                <div class="col-3">
+                  <label class="form-label small fw-semibold">ICU Beds</label>
+                  <input type="number" name="icu_beds" class="form-control form-control-sm" value="5">
+                </div>
+                <div class="col-3">
+                  <label class="form-label small fw-semibold">Oxygen (L)</label>
+                  <input type="number" name="oxygen" class="form-control form-control-sm" value="500">
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-rg-primary btn-sm w-100 fw-bold">Register Hospital</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Shelter -->
+      <div class="col-lg-6">
+        <div class="rg-card">
+          <div class="rg-card-header">
+            <h3 class="rg-card-title"><i class="bi bi-houses text-primary"></i> Register Shelter</h3>
+          </div>
+          <div class="rg-card-body">
+            <form method="post" action="{% url 'admin_facilities' %}">
+              {% csrf_token %}
+              <input type="hidden" name="facility_type" value="shelter">
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Shelter Name *</label>
+                <input type="text" name="name" class="form-control form-control-sm" required>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Manager Name *</label>
+                  <input type="text" name="manager_name" class="form-control form-control-sm" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Phone *</label>
+                  <input type="text" name="phone" class="form-control form-control-sm" required>
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">District *</label>
+                  <input type="text" name="district" class="form-control form-control-sm" value="Chennai" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Total Capacity *</label>
+                  <input type="number" name="total_capacity" class="form-control form-control-sm" value="200" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Address *</label>
+                <input type="text" name="address" class="form-control form-control-sm" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Facilities Provided</label>
+                <textarea name="facilities_description" class="form-control form-control-sm" rows="2" placeholder="Clean water, community kitchen, sanitation, first-aid desk"></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-rg-primary btn-sm w-100 fw-bold">Register Shelter</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

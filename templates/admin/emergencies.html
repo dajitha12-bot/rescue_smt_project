@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Emergency Management Queue{% endblock %}
+{% block page_title %}Emergency Incidents Queue{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-exclamation-triangle-fill text-danger"></i> Incident Triage & Emergency Response Queue
+    </h3>
+    <a href="{% url 'request_help' %}" class="btn btn-sm btn-rg-primary">
+      <i class="bi bi-plus-circle me-1"></i> Log Manual Emergency
+    </a>
+  </div>
+  <div class="rg-card-body">
+    <!-- Filter bar -->
+    <form method="get" class="rg-filter-bar">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <select name="status" class="form-select form-select-sm" style="width: auto;">
+          <option value="">All Statuses</option>
+          {% for code, label in STATUS_FLOW %}
+            <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ code }}</option>
+          {% endfor %}
+        </select>
+
+        <select name="priority" class="form-select form-select-sm" style="width: auto;">
+          <option value="">All Priorities</option>
+          {% for code, label in PRIORITY_LEVELS %}
+            <option value="{{ code }}" {% if priority_filter == code %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="text" name="district" class="form-control form-control-sm" placeholder="District..." value="{{ district_filter|default:'' }}" style="width: 140px;">
+
+        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+        {% if status_filter or priority_filter or district_filter %}
+          <a href="{% url 'admin_emergencies' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Category & Address</th>
+            <th>Affected</th>
+            <th>Severity</th>
+            <th>Priority (PS)</th>
+            <th>Status</th>
+            <th>Assigned Responder</th>
+            <th>Reported Time</th>
+            <th class="text-end">Manage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if emergencies %}
+            {% for em in emergencies %}
+              <tr>
+                <td><strong>{{ em.tracking_code }}</strong></td>
+                <td>{{ em.get_request_type_display }}</td>
+                <td>
+                  <strong>{{ em.category }}</strong>
+                  <div class="text-muted small">{{ em.address }} ({{ em.district }})</div>
+                </td>
+                <td><strong>{{ em.affected_people }}</strong></td>
+                <td><span class="badge bg-light text-dark border">Level {{ em.severity }}</span></td>
+                <td>
+                  <span class="rg-badge rg-priority-{{ em.priority_classification|lower }}">
+                    {{ em.priority_classification }} ({{ em.priority_score }})
+                  </span>
+                </td>
+                <td>
+                  <span class="rg-badge rg-badge-{{ em.status|lower }}">{{ em.status }}</span>
+                </td>
+                <td>
+                  {% if em.assigned_responder %}
+                    <span class="badge bg-info-subtle text-info-emphasis">{{ em.assigned_responder.name }}</span>
+                  {% else %}
+                    <span class="text-muted small">Unassigned</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ em.created_at|date:"d M H:i" }}</td>
+                <td class="text-end">
+                  <a href="{% url 'request_detail' em.tracking_code %}" class="btn btn-sm btn-rg-outline-orange py-1 px-2" style="font-size: 0.78rem;">
+                    Triage & Respond
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="10" class="text-center py-4 text-muted">
+                No emergencies found matching the filter criteria.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

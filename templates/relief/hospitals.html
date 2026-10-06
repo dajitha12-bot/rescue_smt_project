@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Emergency Hospitals & Bed Availability{% endblock %}
+{% block page_title %}Hospitals & Emergency Bed Capacities{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-hospital-fill text-info"></i> Registered Medical Centers & Bed Inventories
+    </h3>
+    <span class="badge bg-secondary-subtle text-secondary">{{ hospitals.count }} Facilities</span>
+  </div>
+  <div class="rg-card-body">
+    <!-- Filter bar -->
+    <form method="get" class="rg-filter-bar">
+      <div class="d-flex align-items-center gap-2">
+        <input type="text" name="district" class="form-control form-control-sm" placeholder="Filter by district (e.g. Chennai)..." value="{{ district_filter|default:'' }}" style="width: 250px;">
+        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+        {% if district_filter %}
+          <a href="{% url 'user_hospitals' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Hospital Name</th>
+            <th>Facility Type</th>
+            <th>District</th>
+            <th>Available / Total Beds</th>
+            <th>ICU Beds</th>
+            <th>Oxygen (Liters)</th>
+            <th>Ambulances</th>
+            <th>Emergency Phone</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if hospitals %}
+            {% for h in hospitals %}
+              <tr>
+                <td>
+                  <strong>{{ h.name }}</strong>
+                  <div class="text-muted small">{{ h.address }}</div>
+                </td>
+                <td><span class="badge bg-light text-dark border">{{ h.hospital_type }}</span></td>
+                <td>{{ h.district }}, {{ h.state }}</td>
+                <td>
+                  <strong class="{% if h.available_beds > 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ h.available_beds }}
+                  </strong> / {{ h.total_beds }}
+                </td>
+                <td><strong class="text-danger">{{ h.icu_beds_available }}</strong></td>
+                <td><strong class="text-primary">{{ h.oxygen_available_liters }} L</strong></td>
+                <td>{{ h.ambulances_available }}</td>
+                <td>
+                  <a href="tel:{{ h.phone }}" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.78rem;">
+                    <i class="bi bi-telephone-fill me-1"></i> {{ h.phone }}
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No hospitals found matching your district filter.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

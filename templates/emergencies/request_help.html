@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Emergency Assistance{% endblock %}
+{% block page_title %}Request Emergency & Relief Aid{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="rg-card">
+      <div class="rg-card-header bg-danger-subtle text-danger-emphasis">
+        <h3 class="rg-card-title">
+          <i class="bi bi-exclamation-octagon-fill text-danger"></i> Emergency Assistance & Relief Request Intake
+        </h3>
+        <span class="badge bg-danger">Direct Ops Dispatch</span>
+      </div>
+      <div class="rg-card-body">
+        <form method="post" action="{% url 'request_help' %}" id="emergencyRequestForm">
+          {% csrf_token %}
+
+          <!-- Section 1: Request Nature -->
+          <div class="mb-4">
+            <h6 class="fw-bold text-uppercase text-muted small border-bottom pb-2 mb-3">1. Incident Classification</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="request_type" class="form-label small fw-semibold text-dark">Primary Assistance Type *</label>
+                <select name="request_type" id="request_type" class="form-select" required onchange="handleTypeChange()">
+                  <option value="EMERGENCY">Life Safety & Evacuation (Critical Rescue)</option>
+                  <option value="RESOURCE">Relief Resources (Food, Water, Supplies)</option>
+                  <option value="SHELTER">Emergency Shelter Placement</option>
+                  <option value="MEDICAL">Urgent Medical Aid & Hospitalization</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label for="category" class="form-label small fw-semibold text-dark">Specific Category / Need *</label>
+                <input type="text" class="form-control" id="category" name="category" 
+                       placeholder="e.g. Flooded Home Evacuation, Food Rations, ICU Bed, Drinking Water" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Severity & Impact -->
+          <div class="mb-4">
+            <h6 class="fw-bold text-uppercase text-muted small border-bottom pb-2 mb-3">2. Severity & Population Impact</h6>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label for="severity" class="form-label small fw-semibold text-dark">Severity Level (S) *</label>
+                <select name="severity" id="severity" class="form-select" required>
+                  <option value="5">5 - Catastrophic (Immediate life-threat, trapped)</option>
+                  <option value="4">4 - Critical (Severe danger, rising water, injuries)</option>
+                  <option value="3" selected>3 - High (Significant disruption, urgent need)</option>
+                  <option value="2">2 - Medium (Moderate disruption, stable conditions)</option>
+                  <option value="1">1 - Low (Minor assistance, non-urgent support)</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label for="affected_people" class="form-label small fw-semibold text-dark">Affected Individuals (P) *</label>
+                <input type="number" class="form-control" id="affected_people" name="affected_people" value="1" min="1" required>
+                <div class="form-text small">Total people needing rescue/aid.</div>
+              </div>
+
+              <div class="col-md-4">
+                <label for="quantity_needed" class="form-label small fw-semibold text-dark">Quantity Needed (N) *</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" id="quantity_needed" name="quantity_needed" value="1" min="1" required>
+                  <input type="text" class="form-control" id="unit" name="unit" value="persons" placeholder="unit" style="max-width: 90px;" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Geographic Location & Map Pin -->
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+              <h6 class="fw-bold text-uppercase text-muted small mb-0">3. Precise Incident Location</h6>
+              <button type="button" class="btn btn-sm btn-rg-outline-orange" id="detectGpsBtn">
+                <i class="bi bi-crosshair me-1"></i> Detect My Current GPS Location
+              </button>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label for="district" class="form-label small fw-semibold text-dark">District *</label>
+                <input type="text" class="form-control" id="district" name="district" value="{{ user_district }}" required>
+              </div>
+              <div class="col-md-4">
+                <label for="state" class="form-label small fw-semibold text-dark">State *</label>
+                <input type="text" class="form-control" id="state" name="state" value="Tamil Nadu" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-dark">Coordinates (Lat, Lon)</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="latitude" name="latitude" value="{{ user_lat }}" placeholder="Latitude" required>
+                  <input type="text" class="form-control" id="longitude" name="longitude" value="{{ user_lon }}" placeholder="Longitude" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="address" class="form-label small fw-semibold text-dark">Physical Landmark / Address *</label>
+              <textarea class="form-control" id="address" name="address" rows="2" 
+                        placeholder="House no, Street name, Near Landmark, Ward number" required>{{ user_address }}</textarea>
+            </div>
+
+            <!-- Mini Leaflet Picker Map -->
+            <div class="mb-2">
+              <div class="small text-muted mb-1">Click anywhere on the map to pin incident coordinates:</div>
+              <div id="pickerMap" style="height: 240px; border-radius: 6px; border: 1px solid #E5E7EB;"></div>
+            </div>
+          </div>
+
+          <!-- Section 4: Incident Description -->
+          <div class="mb-4">
+            <h6 class="fw-bold text-uppercase text-muted small border-bottom pb-2 mb-3">4. Incident Situation & Details</h6>
+            <div class="mb-3">
+              <label for="description" class="form-label small fw-semibold text-dark">Detailed Description of Emergency *</label>
+              <textarea class="form-control" id="description" name="description" rows="3" 
+                        placeholder="Provide critical operational details: water levels, accessibility of roads, medical conditions, elderly or infants present..." required></textarea>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+            <a href="{% url 'user_dashboard' %}" class="btn btn-rg-secondary">Cancel</a>
+            <button type="submit" class="btn btn-rg-primary py-2 px-4 fw-bold">
+              <i class="bi bi-send-fill me-1"></i> Submit Emergency Request
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let pickerMap, marker;
+  const initialLat = parseFloat("{{ user_lat|default:'13.0827' }}");
+  const initialLon = parseFloat("{{ user_lon|default:'80.2707' }}");
+
+  document.addEventListener('DOMContentLoaded', function() {
+    pickerMap = L.map('pickerMap').setView([initialLat, initialLon], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(pickerMap);
+
+    marker = L.marker([initialLat, initialLon], {draggable: true}).addTo(pickerMap);
+
+    marker.on('dragend', function(e) {
+      const pos = marker.getLatLng();
+      document.getElementById('latitude').value = pos.lat.toFixed(5);
+      document.getElementById('longitude').value = pos.lng.toFixed(5);
+    });
+
+    pickerMap.on('click', function(e) {
+      marker.setLatLng(e.latlng);
+      document.getElementById('latitude').value = e.latlng.lat.toFixed(5);
+      document.getElementById('longitude').value = e.latlng.lng.toFixed(5);
+    });
+
+    // Detect GPS button
+    document.getElementById('detectGpsBtn').addEventListener('click', function() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          document.getElementById('latitude').value = lat.toFixed(5);
+          document.getElementById('longitude').value = lon.toFixed(5);
+          marker.setLatLng([lat, lon]);
+          pickerMap.setView([lat, lon], 14);
+        }, function(err) {
+          alert('GPS location detection failed: ' + err.message);
+        });
+      } else {
+        alert('Geolocation is not supported by your browser.');
+      }
+    });
+  });
+
+  function handleTypeChange() {
+    const type = document.getElementById('request_type').value;
+    const catInput = document.getElementById('category');
+    const unitInput = document.getElementById('unit');
+    if (type === 'EMERGENCY') {
+      catInput.placeholder = "e.g. Flood Evacuation, Structural Collapse";
+      unitInput.value = "persons";
+    } else if (type === 'RESOURCE') {
+      catInput.placeholder = "e.g. Drinking Water, Food Rations, Tarpaulins";
+      unitInput.value = "kits";
+    } else if (type === 'SHELTER') {
+      catInput.placeholder = "e.g. Temporary Shelter Bed, Community Hall Bed";
+      unitInput.value = "persons";
+    } else if (type === 'MEDICAL') {
+      catInput.placeholder = "e.g. Emergency Oxygen, Trauma Care, Ambulance Transport";
+      unitInput.value = "units";
+    }
+  }
+</script>
+{% endblock %}

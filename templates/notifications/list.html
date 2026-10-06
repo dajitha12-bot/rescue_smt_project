@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications & Alerts{% endblock %}
+{% block page_title %}Notifications & Operational Alerts{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <div class="d-flex align-items-center gap-2">
+      <h3 class="rg-card-title">
+        <i class="bi bi-bell-fill text-warning"></i> Operational Notifications
+      </h3>
+      {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
+        <span class="badge bg-danger">{{ UNREAD_NOTIFICATIONS_COUNT }} Unread</span>
+      {% endif %}
+    </div>
+
+    {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
+      <a href="{% url 'mark_all_read' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="rg-card-body">
+    <!-- Filter bar -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <a href="{% url 'notifications_list' %}" class="btn btn-sm {% if not filter_type %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+      <a href="{% url 'notifications_list' %}?type=EMERGENCY" class="btn btn-sm {% if filter_type == 'EMERGENCY' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Emergency</a>
+      <a href="{% url 'notifications_list' %}?type=STATUS_UPDATE" class="btn btn-sm {% if filter_type == 'STATUS_UPDATE' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Status Updates</a>
+      <a href="{% url 'notifications_list' %}?type=DONATION" class="btn btn-sm {% if filter_type == 'DONATION' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Donations</a>
+      <a href="{% url 'notifications_list' %}?type=GDACS" class="btn btn-sm {% if filter_type == 'GDACS' %}btn-dark{% else %}btn-outline-secondary{% endif %}">GDACS</a>
+    </div>
+
+    <div class="list-group list-group-flush border rounded">
+      {% if notifications %}
+        {% for notif in notifications %}
+          <div class="list-group-item d-flex justify-content-between align-items-center py-3 px-3 {% if not notif.is_read %}bg-warning-subtle bg-opacity-25{% endif %}">
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                {% if not notif.is_read %}
+                  <span class="badge bg-danger p-1 rounded-circle" style="width: 8px; height: 8px;"></span>
+                {% endif %}
+                <span class="badge bg-light text-dark border">{{ notif.get_notification_type_display }}</span>
+                <strong class="text-dark">{{ notif.title }}</strong>
+              </div>
+              <p class="mb-1 mt-1 small text-secondary">{{ notif.message }}</p>
+              <span class="text-muted" style="font-size: 0.72rem;">{{ notif.created_at|date:"d M Y, H:i" }} IST</span>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              {% if not notif.is_read %}
+                <a href="{% url 'mark_notification_read' notif.id %}" class="btn btn-sm btn-rg-outline-orange py-1 px-2" style="font-size: 0.75rem;">
+                  Mark Read
+                </a>
+              {% endif %}
+              {% if notif.link_url %}
+                <a href="{{ notif.link_url }}" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">
+                  View &rarr;
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-4 text-muted">
+          No notifications in your operational inbox.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

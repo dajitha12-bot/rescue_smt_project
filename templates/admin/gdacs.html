@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}GDACS Live Disaster Feed{% endblock %}
+{% block page_title %}GDACS Real-Time Disaster Feed{% endblock %}
+
+{% block content %}
+<!-- Sync Status Card -->
+<div class="rg-card mb-4">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-broadcast text-warning"></i> Global Disaster Alert and Coordination System (GDACS) Feed Status
+    </h3>
+    <form method="post" action="{% url 'api_gdacs_sync' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-rg-primary">
+        <i class="bi bi-arrow-repeat me-1"></i> Sync GDACS Now
+      </button>
+    </form>
+  </div>
+  <div class="rg-card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-light">
+          <div class="small text-muted">Integration Status</div>
+          {% if sync_status.status == 'SUCCESS' %}
+            <span class="badge bg-success mt-1"><i class="bi bi-check-circle me-1"></i> ACTIVE & LIVE</span>
+          {% elif sync_status.status == 'FAILED' %}
+            <span class="badge bg-danger mt-1"><i class="bi bi-exclamation-triangle me-1"></i> FAILED</span>
+            <div class="text-danger small mt-1">{{ sync_status.error_message }}</div>
+          {% else %}
+            <span class="badge bg-secondary mt-1">INITIALIZING</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-light">
+          <div class="small text-muted">Last Successful Sync</div>
+          <strong class="text-dark">
+            {% if sync_status.last_successful_sync %}
+              {{ sync_status.last_successful_sync|date:"d M Y, H:i:s" }} IST
+            {% else %}
+              No sync data available yet
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-light">
+          <div class="small text-muted">Total Events Synced</div>
+          <strong class="h5 mb-0 text-dark">{{ sync_status.total_events }}</strong>
+          <span class="small text-muted">global alerts</span>
+        </div>
+      </div>
+
+      <div class="col-md-3">
+        <div class="p-3 border rounded bg-light">
+          <div class="small text-muted">India Active Events</div>
+          <strong class="h5 mb-0 text-danger">{{ sync_status.india_events }}</strong>
+          <span class="small text-muted">events ({{ sync_status.tamil_nadu_events }} in Tamil Nadu)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GDACS Events Filter & Data Table -->
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-table text-primary"></i> Live Disaster Event Log (Strict Official Feed)
+    </h3>
+    <span class="badge bg-light text-dark border">{{ total_count }} Matching Events</span>
+  </div>
+  <div class="rg-card-body">
+    <!-- Filter Bar -->
+    <form method="get" class="rg-filter-bar">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Region Filter -->
+        <select name="region" class="form-select form-select-sm" style="width: auto;">
+          <option value="all" {% if region_filter == 'all' %}selected{% endif %}>Global (All Regions)</option>
+          <option value="india" {% if region_filter == 'india' %}selected{% endif %}>India Wide</option>
+          <option value="tamil_nadu" {% if region_filter == 'tamil_nadu' %}selected{% endif %}>Tamil Nadu Only (Coordinates Filter)</option>
+        </select>
+
+        <!-- Alert Level Filter -->
+        <select name="alert_level" class="form-select form-select-sm" style="width: auto;">
+          <option value="">All Alert Levels</option>
+          <option value="Red" {% if alert_filter == 'Red' %}selected{% endif %}>Red - Severe</option>
+          <option value="Orange" {% if alert_filter == 'Orange' %}selected{% endif %}>Orange - Moderate</option>
+          <option value="Green" {% if alert_filter == 'Green' %}selected{% endif %}>Green - Minor</option>
+        </select>
+
+        <!-- Event Type Filter -->
+        <select name="event_type" class="form-select form-select-sm" style="width: auto;">
+          <option value="">All Disaster Types</option>
+          <option value="FL" {% if type_filter == 'FL' %}selected{% endif %}>Flood (FL)</option>
+          <option value="TC" {% if type_filter == 'TC' %}selected{% endif %}>Tropical Cyclone (TC)</option>
+          <option value="EQ" {% if type_filter == 'EQ' %}selected{% endif %}>Earthquake (EQ)</option>
+          <option value="DR" {% if type_filter == 'DR' %}selected{% endif %}>Drought (DR)</option>
+          <option value="VO" {% if type_filter == 'VO' %}selected{% endif %}>Volcano (VO)</option>
+          <option value="WF" {% if type_filter == 'WF' %}selected{% endif %}>Wildfire (WF)</option>
+        </select>
+
+        <input type="text" name="search" class="form-control form-control-sm" placeholder="Search event / country..." value="{{ search|default:'' }}" style="width: 180px;">
+
+        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+        {% if region_filter != 'all' or alert_filter or type_filter or search %}
+          <a href="{% url 'admin_gdacs' %}" class="btn btn-sm btn-outline-secondary">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Event ID</th>
+            <th>Type</th>
+            <th>Event Title / Name</th>
+            <th>Country / Region</th>
+            <th>Alert Level</th>
+            <th>Latitude, Longitude</th>
+            <th>Event Date</th>
+            <th>Source Updated</th>
+            <th class="text-end">Official Report</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if page_obj.object_list %}
+            {% for ev in page_obj.object_list %}
+              <tr>
+                <td><code>{{ ev.external_event_id }}</code></td>
+                <td>
+                  <span class="badge bg-dark">{{ ev.get_event_type_display }}</span>
+                </td>
+                <td>
+                  <strong>{{ ev.event_name }}</strong>
+                  {% if ev.is_tamil_nadu %}
+                    <span class="badge bg-warning text-dark ms-1">Tamil Nadu Bound</span>
+                  {% elif ev.is_india %}
+                    <span class="badge bg-primary-subtle text-primary ms-1">India</span>
+                  {% endif %}
+                </td>
+                <td>{{ ev.country|default:"International" }}</td>
+                <td>
+                  <span class="badge {% if ev.alert_level == 'Red' %}bg-danger{% elif ev.alert_level == 'Orange' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                    {{ ev.alert_level }}
+                  </span>
+                </td>
+                <td><code>{{ ev.latitude|floatformat:4 }}, {{ ev.longitude|floatformat:4 }}</code></td>
+                <td class="text-muted small">{{ ev.event_date|date:"d M Y, H:i" }}</td>
+                <td class="text-muted small">{{ ev.source_updated_at|date:"d M H:i" }}</td>
+                <td class="text-end">
+                  {% if ev.details_url %}
+                    <a href="{{ ev.details_url }}" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.72rem;">
+                      <i class="bi bi-box-arrow-up-right me-1"></i> GDACS
+                    </a>
+                  {% else %}
+                    <span class="text-muted small">N/A</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center py-4 text-muted">
+                No disaster events found for the selected filter.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+      <nav class="d-flex justify-content-between align-items-center mt-3">
+        <div class="small text-muted">
+          Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&region={{ region_filter }}&alert_level={{ alert_filter|default:'' }}&event_type={{ type_filter|default:'' }}&search={{ search|default:'' }}">Previous</a></li>
+          {% endif %}
+          <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&region={{ region_filter }}&alert_level={{ alert_filter|default:'' }}&event_type={{ type_filter|default:'' }}&search={{ search|default:'' }}">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

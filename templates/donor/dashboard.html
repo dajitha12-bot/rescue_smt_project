@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Donor Operations Dashboard{% endblock %}
+{% block page_title %}Donor Relief Portal{% endblock %}
+
+{% block content %}
+<!-- Operational Banner -->
+<div class="rg-ops-banner d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <div>
+    <h2 class="h5 mb-1 text-dark fw-bold">Welcome, {{ user.get_full_name|default:user.username }}</h2>
+    <span class="text-muted small">Supporting Emergency Relief & Critical Supplies Distribution across India</span>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'donor_donate' %}" class="btn btn-rg-primary">
+      <i class="bi bi-heart-fill me-1"></i> Donate Supplies Now
+    </a>
+    <a href="{% url 'donor_needs' %}" class="btn btn-rg-secondary">
+      <i class="bi bi-list-check me-1"></i> View Urgent Relief Needs
+    </a>
+  </div>
+</div>
+
+<!-- Donation Statistics (Strictly calculated from DB) -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Total Donations Pledged</div>
+        <div class="rg-kpi-value text-dark">{{ total_donations_count }}</div>
+        <div class="rg-kpi-subtext">All submitted batches</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-orange">
+        <i class="bi bi-gift-fill"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Verified Pledges</div>
+        <div class="rg-kpi-value text-info">{{ verified_count }}</div>
+        <div class="rg-kpi-subtext">Approved by ops logistics</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-blue">
+        <i class="bi bi-check-circle"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Delivered Batches</div>
+        <div class="rg-kpi-value text-success">{{ delivered_count }}</div>
+        <div class="rg-kpi-subtext">Reached affected families</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-green">
+        <i class="bi bi-truck"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Total Items Delivered</div>
+        <div class="rg-kpi-value text-primary">{{ total_items_delivered }}</div>
+        <div class="rg-kpi-subtext">Units distributed on ground</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-blue">
+        <i class="bi bi-box2-fill"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Relief Needs Summary (Actual requests needing supplies) -->
+<div class="rg-card mb-4">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-exclamation-circle-fill text-danger"></i> Urgent Relief Needs Summary (Active Requests)
+    </h3>
+    <a href="{% url 'donor_needs' %}" class="small text-decoration-none fw-semibold" style="color: #FE8D01;">View All Needs &rarr;</a>
+  </div>
+  <div class="rg-card-body p-0">
+    <div class="rg-table-wrapper border-0">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Need Tracking</th>
+            <th>Resource Category</th>
+            <th>Required Quantity</th>
+            <th>Affected Population</th>
+            <th>Region / District</th>
+            <th>Priority</th>
+            <th class="text-end">Direct Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if active_needs %}
+            {% for n in active_needs %}
+              <tr>
+                <td><strong>{{ n.tracking_code }}</strong></td>
+                <td>{{ n.category }}</td>
+                <td><span class="fw-bold text-dark">{{ n.quantity_needed }}</span> {{ n.unit }}</td>
+                <td>{{ n.affected_people }} persons</td>
+                <td>{{ n.district }}, {{ n.state }}</td>
+                <td>
+                  <span class="rg-badge rg-priority-{{ n.priority_classification|lower }}">
+                    {{ n.priority_classification }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <a href="{% url 'donor_donate' %}?request_id={{ n.id }}" class="btn btn-sm btn-rg-primary py-1 px-2" style="font-size: 0.78rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Fulfill Need
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                No active unfulfilled relief needs at this moment.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- My Recent Donations -->
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-box-seam-fill text-warning"></i> My Recent Donations & Tracking
+    </h3>
+    <a href="{% url 'donor_my_donations' %}" class="small text-decoration-none fw-semibold" style="color: #FE8D01;">Full Donation History &rarr;</a>
+  </div>
+  <div class="rg-card-body p-0">
+    <div class="rg-table-wrapper border-0">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Donation Code</th>
+            <th>Item Donated</th>
+            <th>Quantity</th>
+            <th>Target Region</th>
+            <th>Status Pipeline</th>
+            <th>Date Pledged</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recent_donations %}
+            {% for d in recent_donations %}
+              <tr>
+                <td><strong>{{ d.tracking_code }}</strong></td>
+                <td>{{ d.item_name }}</td>
+                <td><strong>{{ d.quantity }}</strong> {{ d.unit }}</td>
+                <td>{{ d.target_region }}</td>
+                <td>
+                  <span class="rg-badge rg-badge-{{ d.status|lower }}">{{ d.status }}</span>
+                </td>
+                <td class="text-muted small">{{ d.created_at|date:"d M Y, H:i" }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                You have not submitted any donations yet. Click <strong>"Donate Supplies Now"</strong> to help!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}My Emergency Requests{% endblock %}
+{% block page_title %}My Requests & Status Tracking{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-clock-history text-warning"></i> My Submitted Incident Reports & Aid Requests
+    </h3>
+    <a href="{% url 'request_help' %}" class="btn btn-sm btn-rg-primary">
+      <i class="bi bi-plus-circle me-1"></i> New Request
+    </a>
+  </div>
+  <div class="rg-card-body">
+    <!-- Filter Bar -->
+    <form method="get" class="rg-filter-bar">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="small fw-semibold text-muted">Status Filter:</label>
+        <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="Verified" {% if status_filter == 'Verified' %}selected{% endif %}>Verified</option>
+          <option value="Assigned" {% if status_filter == 'Assigned' %}selected{% endif %}>Assigned</option>
+          <option value="Responding" {% if status_filter == 'Responding' %}selected{% endif %}>Responding</option>
+          <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+        </select>
+        {% if status_filter %}
+          <a href="{% url 'my_requests' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Tracking Code</th>
+            <th>Type</th>
+            <th>Category & Address</th>
+            <th>Impact</th>
+            <th>Priority (PS)</th>
+            <th>Current Status</th>
+            <th>Time Reported</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if requests %}
+            {% for r in requests %}
+              <tr>
+                <td><strong>{{ r.tracking_code }}</strong></td>
+                <td>{{ r.get_request_type_display }}</td>
+                <td>
+                  <strong>{{ r.category }}</strong>
+                  <div class="text-muted small">{{ r.address }} ({{ r.district }})</div>
+                </td>
+                <td>
+                  <div>{{ r.affected_people }} people</div>
+                  <div class="text-muted small">Req: {{ r.quantity_needed }} {{ r.unit }}</div>
+                </td>
+                <td>
+                  <span class="rg-badge rg-priority-{{ r.priority_classification|lower }}">
+                    {{ r.priority_classification }} ({{ r.priority_score }})
+                  </span>
+                </td>
+                <td>
+                  <span class="rg-badge rg-badge-{{ r.status|lower }}">{{ r.status }}</span>
+                </td>
+                <td class="text-muted small">{{ r.created_at|date:"d M Y, H:i" }}</td>
+                <td class="text-end">
+                  <a href="{% url 'request_detail' r.tracking_code %}" class="btn btn-sm btn-rg-outline-orange py-1 px-2">
+                    <i class="bi bi-eye me-1"></i> Track Details
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-4 text-muted">
+                No requests found matching your criteria.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

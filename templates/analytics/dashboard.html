@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}Operational Analytics & Algorithms{% endblock %}
+{% block page_title %}Operational Analytics & Allocation Algorithms{% endblock %}
+
+{% block content %}
+<!-- Algorithm Documentation Header -->
+<div class="rg-ops-banner mb-4">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+      <span class="badge bg-dark me-2">ALGORITHMIC DECISION SUPPORT</span>
+      <strong class="text-dark">RescueGrid Mathematical Operations Models</strong>
+      <div class="text-muted small mt-1">Strict implementation of Emergency Priority Scoring (PS), Fair Resource Allocation (RA), and Real Response-Time Metrics.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 1: EMERGENCY PRIORITY SCORE (PS) -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="rg-card h-100">
+      <div class="rg-card-header bg-dark text-white">
+        <h3 class="rg-card-title text-white">
+          <i class="bi bi-calculator text-warning"></i> Emergency Priority Score (PS)
+        </h3>
+      </div>
+      <div class="rg-card-body">
+        <div class="p-3 bg-light rounded border mb-3">
+          <div class="text-center fw-bold text-dark font-monospace mb-1" style="font-size: 1.05rem;">
+            PS = 0.35S + 0.25P + 0.20W + 0.10R + 0.10D
+          </div>
+          <div class="text-muted small text-center">
+            Weighted Multi-Criteria Decision Analysis (MCDA) for Triaging
+          </div>
+        </div>
+
+        <ul class="list-group list-group-flush small mb-3 border rounded">
+          <li class="list-group-item d-flex justify-content-between">
+            <span><strong>S (0.35)</strong>: Severity of Incident</span>
+            <span class="text-muted">Scaled 1-10</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span><strong>P (0.25)</strong>: Population Affected</span>
+            <span class="text-muted">Scaled 0-10</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span><strong>W (0.20)</strong>: Elapsed Waiting Time</span>
+            <span class="text-muted">Hours waiting</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span><strong>R (0.10)</strong>: Resource Shortage</span>
+            <span class="text-muted">Unmet supply gap</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between">
+            <span><strong>D (0.10)</strong>: Distance from Help</span>
+            <span class="text-muted">Isolation factor</span>
+          </li>
+        </ul>
+
+        <!-- Priority Score Classification Thresholds -->
+        <h6 class="small fw-bold text-uppercase text-muted mb-2">Classification Thresholds:</h6>
+        <div class="row g-2 text-center small">
+          <div class="col-3">
+            <div class="p-2 border rounded bg-danger-subtle text-danger fw-bold">Critical &ge; 7.5</div>
+          </div>
+          <div class="col-3">
+            <div class="p-2 border rounded bg-warning-subtle text-dark fw-bold">High 5.5-7.4</div>
+          </div>
+          <div class="col-3">
+            <div class="p-2 border rounded bg-info-subtle text-dark fw-bold">Medium 3.5-5.4</div>
+          </div>
+          <div class="col-3">
+            <div class="p-2 border rounded bg-success-subtle text-success fw-bold">Low &lt; 3.5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Priority Score Distribution Chart -->
+  <div class="col-lg-7">
+    <div class="rg-card h-100">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-pie-chart-fill text-warning"></i> Incident Priority Distribution (Actual Requests)
+        </h3>
+        <span class="badge bg-light text-dark border">Real Database Records</span>
+      </div>
+      <div class="rg-card-body d-flex flex-column justify-content-center">
+        <div style="height: 240px; position: relative;">
+          <canvas id="priorityChart"></canvas>
+        </div>
+        <div class="d-flex justify-content-around text-center mt-3 pt-2 border-top">
+          <div>
+            <div class="small text-muted">Critical</div>
+            <div class="h5 mb-0 fw-bold text-danger">{{ priority_counts.Critical }}</div>
+          </div>
+          <div>
+            <div class="small text-muted">High</div>
+            <div class="h5 mb-0 fw-bold text-warning">{{ priority_counts.High }}</div>
+          </div>
+          <div>
+            <div class="small text-muted">Medium</div>
+            <div class="h5 mb-0 fw-bold text-info">{{ priority_counts.Medium }}</div>
+          </div>
+          <div>
+            <div class="small text-muted">Low</div>
+            <div class="h5 mb-0 fw-bold text-success">{{ priority_counts.Low }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Priority Score Breakdown Table on Actual Requests -->
+<div class="rg-card mb-4">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-table text-primary"></i> Live Priority Score Parameter Audit (Actual Requests)
+    </h3>
+  </div>
+  <div class="rg-card-body p-0">
+    <div class="rg-table-wrapper border-0">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Tracking</th>
+            <th>Category & District</th>
+            <th>S (35%)</th>
+            <th>P (25%)</th>
+            <th>W (20%)</th>
+            <th>R (10%)</th>
+            <th>D (10%)</th>
+            <th>Calculated PS</th>
+            <th>Classification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if scored_requests %}
+            {% for req in scored_requests %}
+              <tr>
+                <td><strong>{{ req.tracking_code }}</strong></td>
+                <td>{{ req.category }} ({{ req.district }})</td>
+                <td>{{ req.score_breakdown.S|default:"--" }}</td>
+                <td>{{ req.score_breakdown.P|default:"--" }}</td>
+                <td>{{ req.score_breakdown.W|default:"--" }}</td>
+                <td>{{ req.score_breakdown.R|default:"--" }}</td>
+                <td>{{ req.score_breakdown.D|default:"--" }}</td>
+                <td><strong class="text-dark">{{ req.priority_score }}</strong></td>
+                <td>
+                  <span class="rg-badge rg-priority-{{ req.priority_classification|lower }}">
+                    {{ req.priority_classification }}
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center py-4 text-muted">
+                No active request records available to score.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2: FAIR RESOURCE ALLOCATION (RA) -->
+<div class="rg-card mb-4">
+  <div class="rg-card-header flex-wrap gap-2">
+    <div>
+      <h3 class="rg-card-title">
+        <i class="bi bi-diagram-2-fill text-warning"></i> Fair Resource Allocation Algorithm (RA)
+      </h3>
+      <div class="small text-muted font-monospace mt-1">
+        RAᵢ = [(Nᵢ &times; Dᵢ &times; Sᵢ) / &Sigma;(Nᵢ &times; Dᵢ &times; Sᵢ)] &times; Rₜ
+      </div>
+    </div>
+
+    <!-- Simulator controls -->
+    <form method="get" class="d-flex align-items-center gap-2">
+      <input type="number" name="pool_size" class="form-control form-control-sm" placeholder="Pool Size (Rₜ)" value="{{ pool_size|default:allocation_results.total_resource_pool }}" style="width: 120px;">
+      <button type="submit" class="btn btn-sm btn-rg-outline-orange">Recalculate Allocation</button>
+    </form>
+  </div>
+  <div class="rg-card-body">
+    <div class="p-3 bg-light rounded border mb-3 small">
+      <strong>Mathematical Definition:</strong>
+      Allocates available resource pool \(R_t\) proportionally among active incidents according to need (\(N_i\)), distance/vulnerability factor (\(D_i\)), and severity (\(S_i\)).
+      Current Total Resource Pool \(R_t\): <strong>{{ allocation_results.total_resource_pool }} units</strong> &bull; Sum of Weights \(\Sigma(N_i \times D_i \times S_i)\): <strong>{{ allocation_results.sum_weights }}</strong>
+    </div>
+
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Request Code</th>
+            <th>Category</th>
+            <th>District</th>
+            <th>Need (Nᵢ)</th>
+            <th>Distance Factor (Dᵢ)</th>
+            <th>Severity (Sᵢ)</th>
+            <th>Weight (Nᵢ&times;Dᵢ&times;Sᵢ)</th>
+            <th>Share (%)</th>
+            <th>Allocated Units (RAᵢ)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if allocation_results.allocations %}
+            {% for item in allocation_results.allocations %}
+              <tr>
+                <td><strong>{{ item.tracking_code }}</strong></td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.district }}</td>
+                <td><strong>{{ item.needed_quantity }}</strong> {{ item.unit }}</td>
+                <td>{{ item.distance_factor }}</td>
+                <td>{{ item.severity_factor }}</td>
+                <td><strong class="text-dark">{{ item.weight }}</strong></td>
+                <td>{{ item.share_pct }}%</td>
+                <td>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle fs-6">
+                    {{ item.allocated_units }} units
+                  </span>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center py-4 text-muted">
+                {{ allocation_results.message }}
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: RESPONSE TIME METRICS -->
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-stopwatch text-primary"></i> Incident Response Time Analytics
+    </h3>
+    <span class="small text-muted font-monospace">Response Time = Resolved Time − Reported Time</span>
+  </div>
+  <div class="rg-card-body">
+    {% if response_time_data.has_data %}
+      <div class="row g-3 text-center mb-4">
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <div class="small text-muted">Resolved Incidents</div>
+            <div class="h4 mb-0 fw-bold text-dark">{{ response_time_data.count }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <div class="small text-muted">Average Response Time</div>
+            <div class="h4 mb-0 fw-bold text-primary">{{ response_time_data.avg_minutes }} min ({{ response_time_data.avg_hours }} hrs)</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <div class="small text-muted">Fastest Response</div>
+            <div class="h4 mb-0 fw-bold text-success">{{ response_time_data.min_minutes }} min</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="p-3 border rounded bg-light">
+            <div class="small text-muted">Longest Response</div>
+            <div class="h4 mb-0 fw-bold text-danger">{{ response_time_data.max_minutes }} min</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rg-table-wrapper">
+        <table class="rg-table">
+          <thead>
+            <tr>
+              <th>Tracking Code</th>
+              <th>Category</th>
+              <th>Reported At</th>
+              <th>Resolved At</th>
+              <th>Response Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for res in response_time_data.resolved_list %}
+              <tr>
+                <td><strong>{{ res.tracking_code }}</strong></td>
+                <td>{{ res.category }} ({{ res.district }})</td>
+                <td class="text-muted small">{{ res.created_at|date:"d M Y, H:i" }}</td>
+                <td class="text-muted small">{{ res.resolved_at|date:"d M Y, H:i" }}</td>
+                <td><strong class="text-success">{{ res.response_time_minutes }} minutes</strong></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-secondary text-center py-4 my-2 border">
+        <i class="bi bi-clock-history fs-3 d-block mb-2 text-muted"></i>
+        <h5 class="text-muted mb-1">{{ response_time_data.message }}</h5>
+        <div class="small text-muted">Response times are calculated automatically when emergency incidents transition to the "Resolved" state.</div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('priorityChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Critical (>=7.5)', 'High (5.5-7.4)', 'Medium (3.5-5.4)', 'Low (<3.5)'],
+        datasets: [{
+          data: [
+            {{ priority_counts.Critical }},
+            {{ priority_counts.High }},
+            {{ priority_counts.Medium }},
+            {{ priority_counts.Low }}
+          ],
+          backgroundColor: ['#DC2626', '#FE8D01', '#EAB308', '#16A34A'],
+          borderWidth: 1,
+          borderColor: '#FFFFFF'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 12, font: { size: 11 } }
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}

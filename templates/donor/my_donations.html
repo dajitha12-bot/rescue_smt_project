@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}My Donations Pipeline{% endblock %}
+{% block page_title %}My Donations Pipeline{% endblock %}
+
+{% block content %}
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-box2-heart-fill text-warning"></i> My Contributed Relief Supplies
+    </h3>
+    <a href="{% url 'donor_donate' %}" class="btn btn-sm btn-rg-primary">
+      <i class="bi bi-plus-circle me-1"></i> New Donation
+    </a>
+  </div>
+  <div class="rg-card-body">
+    <div class="rg-table-wrapper">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Tracking Code</th>
+            <th>Item Details</th>
+            <th>Quantity</th>
+            <th>Target Region</th>
+            <th>Current Status</th>
+            <th>Progress Pipeline</th>
+            <th>Date Logged</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if donations %}
+            {% for d in donations %}
+              <tr>
+                <td><strong>{{ d.tracking_code }}</strong></td>
+                <td>
+                  <strong>{{ d.item_name }}</strong>
+                  <div class="text-muted small">{{ d.get_category_display }}</div>
+                </td>
+                <td><strong>{{ d.quantity }}</strong> {{ d.unit }}</td>
+                <td>{{ d.target_region }}</td>
+                <td>
+                  <span class="rg-badge rg-badge-{{ d.status|lower }}">{{ d.status }}</span>
+                </td>
+                <td>
+                  <!-- Mini Pipeline indicator -->
+                  <div class="d-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                    <span class="badge {% if d.status == 'Submitted' or d.status == 'Verified' or d.status == 'Received' or d.status == 'Allocated' or d.status == 'Delivered' %}bg-success{% else %}bg-light text-muted border{% endif %}">1. Sub</span>
+                    <span>&rsaquo;</span>
+                    <span class="badge {% if d.status == 'Verified' or d.status == 'Received' or d.status == 'Allocated' or d.status == 'Delivered' %}bg-success{% else %}bg-light text-muted border{% endif %}">2. Ver</span>
+                    <span>&rsaquo;</span>
+                    <span class="badge {% if d.status == 'Received' or d.status == 'Allocated' or d.status == 'Delivered' %}bg-success{% else %}bg-light text-muted border{% endif %}">3. Rec</span>
+                    <span>&rsaquo;</span>
+                    <span class="badge {% if d.status == 'Allocated' or d.status == 'Delivered' %}bg-success{% else %}bg-light text-muted border{% endif %}">4. All</span>
+                    <span>&rsaquo;</span>
+                    <span class="badge {% if d.status == 'Delivered' %}bg-success{% else %}bg-light text-muted border{% endif %}">5. Del</span>
+                  </div>
+                </td>
+                <td class="text-muted small">{{ d.created_at|date:"d M Y, H:i" }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                No donations submitted yet. Support relief operations by pledging supplies today!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

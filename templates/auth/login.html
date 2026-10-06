@@ -1,0 +1,141 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - {{ APP_NAME }} Operations Platform</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{% static 'css/rescuegrid.css' %}">
+  <style>
+    body {
+      background-color: #0F172A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    .rg-auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: #FFFFFF;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      border: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .rg-auth-header {
+      background-color: #111827;
+      color: #FFFFFF;
+      padding: 1.75rem 2rem;
+      border-bottom: 3px solid #FE8D01;
+    }
+    .rg-auth-body {
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="rg-auth-card">
+  <div class="rg-auth-header text-center">
+    <div class="d-inline-flex align-items-center justify-content-center p-2 rounded mb-2" style="background-color: #FE8D01; color: #FFFFFF; width: 44px; height: 44px;">
+      <i class="bi bi-shield-shaded fs-4"></i>
+    </div>
+    <h2 class="h4 fw-bold mb-1 text-white tracking-wide">RESCUEGRID</h2>
+    <p class="small text-muted mb-0" style="color: #94A3B8 !important;">Multi-Region Emergency Response & Relief Platform for India</p>
+  </div>
+
+  <div class="rg-auth-body">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show small py-2" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="mb-3">
+        <label for="username" class="form-label small fw-semibold text-dark">Username or Access ID</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-person"></i></span>
+          <input type="text" class="form-control border-start-0" id="username" name="username" placeholder="Enter username" required autofocus>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+          <label for="password" class="form-label small fw-semibold text-dark">Password</label>
+        </div>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-muted border-end-0"><i class="bi bi-lock"></i></span>
+          <input type="password" class="form-control border-start-0" id="password" name="password" placeholder="Enter password" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-rg-primary w-100 py-2 fw-semibold mt-2">
+        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Operations
+      </button>
+    </form>
+
+    <div class="text-center mt-3 pt-3 border-top">
+      <p class="small text-muted mb-2">Need a new account for your community or facility?</p>
+      <a href="{% url 'register' %}" class="btn btn-sm btn-outline-secondary w-100">Register as Citizen, Hospital or Donor</a>
+    </div>
+
+    <!-- Demonstration Quick Access Switchers -->
+    <div class="mt-4 pt-3 border-top">
+      <div class="small fw-bold text-uppercase text-muted mb-2" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+        <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Quick Test Access by Role:
+      </div>
+      <div class="row g-2">
+        <div class="col-6">
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="hidden" name="demo_user" value="admin">
+            <button type="submit" class="btn btn-sm btn-light border text-start w-100 px-2 py-1" title="Login as Operations Administrator">
+              <i class="bi bi-shield-lock-fill text-danger me-1"></i> <strong style="font-size: 0.78rem;">Admin Ops</strong>
+            </button>
+          </form>
+        </div>
+        <div class="col-6">
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="hidden" name="demo_user" value="citizen1">
+            <button type="submit" class="btn btn-sm btn-light border text-start w-100 px-2 py-1" title="Login as Affected Person">
+              <i class="bi bi-person-fill text-primary me-1"></i> <strong style="font-size: 0.78rem;">Affected User</strong>
+            </button>
+          </form>
+        </div>
+        <div class="col-6">
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="hidden" name="demo_user" value="hospital_user">
+            <button type="submit" class="btn btn-sm btn-light border text-start w-100 px-2 py-1" title="Login as Hospital Facility User">
+              <i class="bi bi-hospital-fill text-info me-1"></i> <strong style="font-size: 0.78rem;">Hospital User</strong>
+            </button>
+          </form>
+        </div>
+        <div class="col-6">
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <input type="hidden" name="demo_user" value="donor1">
+            <button type="submit" class="btn btn-sm btn-light border text-start w-100 px-2 py-1" title="Login as Relief Donor">
+              <i class="bi bi-heart-fill text-warning me-1"></i> <strong style="font-size: 0.78rem;">Donor</strong>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

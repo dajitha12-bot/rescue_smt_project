@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Multi-Region Operations Map{% endblock %}
+{% block page_title %}Multi-Region Emergency Operations Map{% endblock %}
+
+{% block content %}
+<div class="rg-card mb-3">
+  <div class="rg-card-header flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <h3 class="rg-card-title">
+        <i class="bi bi-map-fill text-warning"></i> Leaflet + OpenStreetMap Real-Time Operations GIS
+      </h3>
+      <span class="badge bg-dark">Official Feeds</span>
+    </div>
+
+    <!-- Filter & Layer Controls -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <!-- Geographic Region Filter -->
+      <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-dark active" id="filterAllIndia" onclick="setRegionFilter('india')">
+          <i class="bi bi-globe-central-south me-1"></i> India-Wide
+        </button>
+        <button type="button" class="btn btn-outline-dark" id="filterTamilNadu" onclick="setRegionFilter('tamil_nadu')">
+          <i class="bi bi-geo-alt-fill text-danger me-1"></i> Tamil Nadu (Coordinate Bounds)
+        </button>
+        <button type="button" class="btn btn-outline-dark" id="filterGlobal" onclick="setRegionFilter('all')">
+          Global GDACS
+        </button>
+      </div>
+
+      <!-- Layer Visibility Toggles -->
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="bi bi-layers me-1"></i> Layer Controls
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end p-2 small" style="min-width: 220px;">
+          <li class="form-check">
+            <input class="form-check-input" type="checkbox" id="layerGdacsCheck" checked onchange="toggleLayer('gdacs')">
+            <label class="form-check-label fw-semibold" for="layerGdacsCheck">GDACS Disaster Events</label>
+          </li>
+          <li class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="layerEmergenciesCheck" checked onchange="toggleLayer('emergencies')">
+            <label class="form-check-label fw-semibold" for="layerEmergenciesCheck">Emergency Incidents</label>
+          </li>
+          <li class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="layerHospitalsCheck" checked onchange="toggleLayer('hospitals')">
+            <label class="form-check-label fw-semibold" for="layerHospitalsCheck">Hospitals & Beds</label>
+          </li>
+          <li class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="layerSheltersCheck" checked onchange="toggleLayer('shelters')">
+            <label class="form-check-label fw-semibold" for="layerSheltersCheck">Relief Shelters</label>
+          </li>
+          <li class="form-check mt-1">
+            <input class="form-check-input" type="checkbox" id="layerRespondersCheck" checked onchange="toggleLayer('responders')">
+            <label class="form-check-label fw-semibold" for="layerRespondersCheck">Responders On Duty</label>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="rg-card-body p-0 position-relative">
+    <div id="adminOpsMap" class="rg-map-container" style="height: 600px;"></div>
+
+    <!-- Map Floating Stats Overlay -->
+    <div class="position-absolute bottom-0 start-0 m-3 p-2 bg-white bg-opacity-95 rounded border shadow-sm z-3" style="font-size: 0.78rem; max-width: 320px;">
+      <div class="fw-bold text-dark border-bottom pb-1 mb-1">Live Map Summary:</div>
+      <div class="d-flex justify-content-between mb-1">
+        <span>GDACS Events Displayed:</span>
+        <strong id="statGdacsCount" class="text-danger">0</strong>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <span>Active Incidents:</span>
+        <strong id="statEmergenciesCount" class="text-warning">0</strong>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <span>Hospitals & Shelters:</span>
+        <strong id="statFacilitiesCount" class="text-primary">0</strong>
+      </div>
+      <div class="d-flex justify-content-between">
+        <span>Deployed / Ready Responders:</span>
+        <strong id="statRespondersCount" class="text-success">0</strong>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  let map;
+  let currentRegion = 'india';
+
+  // Layer Groups
+  let gdacsLayerGroup = L.layerGroup();
+  let emergenciesLayerGroup = L.layerGroup();
+  let hospitalsLayerGroup = L.layerGroup();
+  let sheltersLayerGroup = L.layerGroup();
+  let respondersLayerGroup = L.layerGroup();
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Center initially on India (approx lat 20.5937, lon 78.9629)
+    map = L.map('adminOpsMap').setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors | GDACS Real-time Data',
+      maxZoom: 18
+    }).addTo(map);
+
+    gdacsLayerGroup.addTo(map);
+    emergenciesLayerGroup.addTo(map);
+    hospitalsLayerGroup.addTo(map);
+    sheltersLayerGroup.addTo(map);
+    respondersLayerGroup.addTo(map);
+
+    loadMapData(currentRegion);
+  });
+
+  function setRegionFilter(region) {
+    currentRegion = region;
+    document.getElementById('filterAllIndia').classList.remove('active');
+    document.getElementById('filterTamilNadu').classList.remove('active');
+    document.getElementById('filterGlobal').classList.remove('active');
+
+    if (region === 'india') {
+      document.getElementById('filterAllIndia').classList.add('active');
+      map.setView([20.5937, 78.9629], 5);
+    } else if (region === 'tamil_nadu') {
+      document.getElementById('filterTamilNadu').classList.add('active');
+      // Tamil Nadu center
+      map.setView([11.1271, 78.6569], 7);
+    } else {
+      document.getElementById('filterGlobal').classList.add('active');
+      map.setView([20, 0], 2);
+    }
+
+    loadMapData(region);
+  }
+
+  function toggleLayer(layerName) {
+    if (layerName === 'gdacs') {
+      const isChecked = document.getElementById('layerGdacsCheck').checked;
+      if (isChecked) map.addLayer(gdacsLayerGroup); else map.removeLayer(gdacsLayerGroup);
+    } else if (layerName === 'emergencies') {
+      const isChecked = document.getElementById('layerEmergenciesCheck').checked;
+      if (isChecked) map.addLayer(emergenciesLayerGroup); else map.removeLayer(emergenciesLayerGroup);
+    } else if (layerName === 'hospitals') {
+      const isChecked = document.getElementById('layerHospitalsCheck').checked;
+      if (isChecked) map.addLayer(hospitalsLayerGroup); else map.removeLayer(hospitalsLayerGroup);
+    } else if (layerName === 'shelters') {
+      const isChecked = document.getElementById('layerSheltersCheck').checked;
+      if (isChecked) map.addLayer(sheltersLayerGroup); else map.removeLayer(sheltersLayerGroup);
+    } else if (layerName === 'responders') {
+      const isChecked = document.getElementById('layerRespondersCheck').checked;
+      if (isChecked) map.addLayer(respondersLayerGroup); else map.removeLayer(respondersLayerGroup);
+    }
+  }
+
+  function loadMapData(region) {
+    fetch(`/api/map/layers/?region=${region}`)
+      .then(res => res.json())
+      .then(data => {
+        // Clear previous layers
+        gdacsLayerGroup.clearLayers();
+        emergenciesLayerGroup.clearLayers();
+        hospitalsLayerGroup.clearLayers();
+        sheltersLayerGroup.clearLayers();
+        respondersLayerGroup.clearLayers();
+
+        // 1. Render GDACS events
+        let gdacsCount = 0;
+        data.gdacs_events.forEach(ev => {
+          gdacsCount++;
+          const alertColor = ev.alert_level === 'Red' ? '#DC2626' : (ev.alert_level === 'Orange' ? '#EA580C' : '#16A34A');
+          const circle = L.circleMarker([ev.lat, ev.lon], {
+            radius: ev.alert_level === 'Red' ? 10 : 7,
+            fillColor: alertColor,
+            color: '#FFFFFF',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.85
+          });
+
+          const popupContent = `
+            <div style="font-family: inherit; font-size: 12px; line-height: 1.4;">
+              <span class="badge" style="background-color: ${alertColor}; color: white;">GDACS ${ev.alert_level} Alert</span>
+              <strong style="display: block; margin-top: 4px; font-size: 13px;">${ev.name}</strong>
+              <div style="color: #666;">Type: ${ev.type} &bull; Country: ${ev.country}</div>
+              <div style="color: #666;">Coordinates: ${ev.lat.toFixed(4)}, ${ev.lon.toFixed(4)}</div>
+              <div style="margin-top: 4px;">${ev.area}</div>
+              ${ev.url ? `<a href="${ev.url}" target="_blank" style="color: #FE8D01; font-weight: bold; display: inline-block; margin-top: 6px;">View GDACS Report &rarr;</a>` : ''}
+            </div>
+          `;
+          circle.bindPopup(popupContent);
+          gdacsLayerGroup.addLayer(circle);
+        });
+        document.getElementById('statGdacsCount').textContent = gdacsCount;
+
+        // 2. Render Emergencies
+        let emergCount = 0;
+        data.emergencies.forEach(em => {
+          emergCount++;
+          const priorityColor = em.priority_classification === 'Critical' ? '#DC2626' : (em.priority_classification === 'High' ? '#FE8D01' : '#EAB308');
+          const marker = L.circleMarker([em.lat, em.lon], {
+            radius: 8,
+            fillColor: priorityColor,
+            color: '#000000',
+            weight: 1.5,
+            fillOpacity: 0.9
+          });
+
+          const popup = `
+            <div style="font-size: 12px; line-height: 1.4;">
+              <span class="badge" style="background-color: ${priorityColor}; color: white;">Priority: ${em.priority_classification} (PS ${em.priority_score})</span>
+              <strong style="display: block; margin-top: 4px; font-size: 13px;">${em.tracking_code}: ${em.category}</strong>
+              <div>${em.address} (${em.district})</div>
+              <div>Affected: <strong>${em.affected_people} people</strong></div>
+              <div>Status: <strong>${em.status}</strong></div>
+              <a href="/emergencies/track/${em.tracking_code}/" style="color: #FE8D01; font-weight: bold; display: inline-block; margin-top: 6px;">Triage Incident &rarr;</a>
+            </div>
+          `;
+          marker.bindPopup(popup);
+          emergenciesLayerGroup.addLayer(marker);
+        });
+        document.getElementById('statEmergenciesCount').textContent = emergCount;
+
+        // 3. Render Hospitals
+        let facCount = 0;
+        data.hospitals.forEach(h => {
+          facCount++;
+          const hospMarker = L.circleMarker([h.lat, h.lon], {
+            radius: 6,
+            fillColor: '#2563EB',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.85
+          });
+          hospMarker.bindPopup(`
+            <div style="font-size: 12px;">
+              <strong style="font-size: 13px; color: #2563EB;">${h.name}</strong>
+              <div>${h.address} (${h.district})</div>
+              <div>Beds: <strong>${h.available_beds} / ${h.total_beds}</strong> available</div>
+              <div>ICU: <strong>${h.icu_beds}</strong> | Oxygen: <strong>${h.oxygen} L</strong></div>
+              <div>Phone: <strong>${h.phone}</strong></div>
+            </div>
+          `);
+          hospitalsLayerGroup.addLayer(hospMarker);
+        });
+
+        // 4. Render Shelters
+        data.shelters.forEach(s => {
+          facCount++;
+          const shelterMarker = L.circleMarker([s.lat, s.lon], {
+            radius: 6,
+            fillColor: '#059669',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.85
+          });
+          shelterMarker.bindPopup(`
+            <div style="font-size: 12px;">
+              <strong style="font-size: 13px; color: #059669;">${s.name}</strong>
+              <div>${s.address} (${s.district})</div>
+              <div>Capacity: <strong>${s.available_capacity} / ${s.total_capacity}</strong> free</div>
+              <div>Manager: ${s.manager} (${s.phone})</div>
+            </div>
+          `);
+          sheltersLayerGroup.addLayer(shelterMarker);
+        });
+        document.getElementById('statFacilitiesCount').textContent = facCount;
+
+        // 5. Render Responders
+        let respCount = 0;
+        data.responders.forEach(r => {
+          respCount++;
+          const respMarker = L.circleMarker([r.lat, r.lon], {
+            radius: 6,
+            fillColor: '#7C3AED',
+            color: '#FFFFFF',
+            weight: 2,
+            fillOpacity: 0.85
+          });
+          respMarker.bindPopup(`
+            <div style="font-size: 12px;">
+              <strong style="font-size: 13px; color: #7C3AED;">${r.name}</strong>
+              <div>${r.team} (${r.type})</div>
+              <div>Status: <strong>${r.status}</strong></div>
+              <div>Phone: ${r.phone}</div>
+            </div>
+          `);
+          respondersLayerGroup.addLayer(respMarker);
+        });
+        document.getElementById('statRespondersCount').textContent = respCount;
+      })
+      .catch(err => console.error("Error loading map layers:", err));
+  }
+</script>
+{% endblock %}

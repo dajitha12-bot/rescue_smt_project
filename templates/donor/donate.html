@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Donate Relief Supplies{% endblock %}
+{% block page_title %}Pledge Relief Supplies{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="rg-card">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-gift-fill text-warning"></i> Relief Supplies Donation Form
+        </h3>
+        <span class="badge bg-light text-muted border">Tamil Nadu & Multi-Region Relief</span>
+      </div>
+      <div class="rg-card-body">
+        {% if prefill_request %}
+          <div class="alert alert-info py-2 small mb-3 border-info-subtle">
+            <i class="bi bi-info-circle-fill me-1"></i> Fulfilling Emergency Request: 
+            <strong>{{ prefill_request.tracking_code }}</strong> ({{ prefill_request.category }} - {{ prefill_request.quantity_needed }} {{ prefill_request.unit }} needed in {{ prefill_request.district }})
+          </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'donor_donate' %}">
+          {% csrf_token %}
+          {% if prefill_request %}
+            <input type="hidden" name="allocated_to_request_id" value="{{ prefill_request.id }}">
+          {% endif %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="category" class="form-label small fw-semibold text-dark">Resource Category</label>
+              <select name="category" id="category" class="form-select" required>
+                {% for code, label in categories %}
+                  <option value="{{ code }}" {% if prefill_request and code in prefill_request.category %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="item_name" class="form-label small fw-semibold text-dark">Specific Item / Material Name</label>
+              <input type="text" class="form-control" id="item_name" name="item_name" 
+                     value="{% if prefill_request %}{{ prefill_request.category }}{% endif %}" 
+                     placeholder="e.g. Dry Ration Kits, 20L Water Cans, First Aid Kits" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="quantity" class="form-label small fw-semibold text-dark">Quantity</label>
+              <input type="number" class="form-control" id="quantity" name="quantity" 
+                     value="{% if prefill_request %}{{ prefill_request.quantity_needed }}{% else %}50{% endif %}" min="1" required>
+            </div>
+            <div class="col-md-6">
+              <label for="unit" class="form-label small fw-semibold text-dark">Unit of Measure</label>
+              <select name="unit" id="unit" class="form-select" required>
+                <option value="kits">Kits</option>
+                <option value="liters">Liters</option>
+                <option value="boxes">Boxes</option>
+                <option value="pieces">Pieces / Units</option>
+                <option value="kg">Kilograms (kg)</option>
+                <option value="tents">Tents</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="target_region" class="form-label small fw-semibold text-dark">Target Region / District</label>
+            <input type="text" class="form-control" id="target_region" name="target_region" 
+                   value="{% if prefill_request %}{{ prefill_request.district }}, {{ prefill_request.state }}{% else %}General Relief / Priority Needs{% endif %}" required>
+            <div class="form-text small text-muted">You can specify a target district (e.g. Cuddalore, Chennai, Thoothukudi) or leave as General Relief.</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="pickup_location" class="form-label small fw-semibold text-dark">Pickup / Drop-off Location Address</label>
+            <textarea class="form-control" id="pickup_location" name="pickup_location" rows="2" 
+                      placeholder="Address where relief team can pick up or drop off instructions" required></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="notes" class="form-label small fw-semibold text-dark">Additional Logistics Notes (Optional)</label>
+            <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Packaging details, expiration dates, transport arrangements"></textarea>
+          </div>
+
+          <div class="p-3 bg-light rounded border mb-3">
+            <div class="small text-muted fw-semibold mb-1">Donation Lifecycle Pipeline:</div>
+            <div class="small text-muted">
+              <strong>Submitted</strong> &rarr; <strong>Verified</strong> by Ops &rarr; <strong>Received</strong> at Depot &rarr; <strong>Allocated</strong> to Incident &rarr; <strong>Delivered</strong> to Beneficiaries
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-rg-primary py-2 px-4 fw-semibold">
+            <i class="bi bi-heart-fill me-1"></i> Submit Donation Pledge
+          </button>
+          <a href="{% url 'donor_dashboard' %}" class="btn btn-rg-secondary ms-2">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

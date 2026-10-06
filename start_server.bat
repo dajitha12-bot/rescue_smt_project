@@ -1,0 +1,5 @@
+@echo off
+echo Starting RescueGrid Emergency Response & Relief Platform...
+cd /d "%~dp0"
+python manage.py runserver 127.0.0.1:8000
+pause

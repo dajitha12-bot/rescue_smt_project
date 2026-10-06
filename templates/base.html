@@ -1,0 +1,322 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Operations Dashboard{% endblock %} - {{ APP_NAME }}</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Custom RescueGrid CSS -->
+  <link rel="stylesheet" href="{% static 'css/rescuegrid.css' %}">
+  
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<div class="rg-app-container">
+  <!-- Mobile Sidebar Overlay -->
+  <div class="rg-sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Left Sidebar Navigation -->
+  <aside class="rg-sidebar" id="rgSidebar">
+    <a href="{% url 'dashboard_redirect' %}" class="rg-sidebar-brand">
+      <div class="rg-brand-symbol">
+        <i class="bi bi-shield-shaded"></i>
+      </div>
+      <div class="rg-brand-text">
+        <span class="rg-brand-title">{{ APP_NAME }}</span>
+        <span class="rg-brand-subtitle">Emergency Operations</span>
+      </div>
+    </a>
+
+    <div class="rg-sidebar-menu">
+      {% if user.is_authenticated %}
+        {% if user.is_admin_user %}
+          <!-- ADMIN NAVIGATION -->
+          <div class="rg-nav-group-title">Command & Control</div>
+          <a href="{% url 'admin_dashboard' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Operations Dashboard
+          </a>
+          <a href="{% url 'admin_emergencies' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_emergencies' %}active{% endif %}">
+            <i class="bi bi-exclamation-triangle-fill"></i> Emergencies
+          </a>
+          <a href="{% url 'admin_map' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_map' %}active{% endif %}">
+            <i class="bi bi-map-fill"></i> Multi-Region Map
+          </a>
+          <a href="{% url 'admin_gdacs' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_gdacs' %}active{% endif %}">
+            <i class="bi bi-broadcast-pin"></i> GDACS Disaster Feed
+          </a>
+
+          <div class="rg-nav-group-title">Relief & Resources</div>
+          <a href="{% url 'admin_resources' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_resources' %}active{% endif %}">
+            <i class="bi bi-boxes"></i> Inventory & Stock
+          </a>
+          <a href="{% url 'admin_donations' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_donations' %}active{% endif %}">
+            <i class="bi bi-heart-fill"></i> Donations Pipeline
+          </a>
+          <a href="{% url 'admin_facilities' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_facilities' %}active{% endif %}">
+            <i class="bi bi-hospital"></i> Hospitals & Shelters
+          </a>
+          <a href="{% url 'admin_responders' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_responders' %}active{% endif %}">
+            <i class="bi bi-people-fill"></i> Responders
+          </a>
+
+          <div class="rg-nav-group-title">Analytics & System</div>
+          <a href="{% url 'analytics_dashboard' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'analytics_dashboard' %}active{% endif %}">
+            <i class="bi bi-graph-up-arrow"></i> Priority & Allocation
+          </a>
+          <a href="{% url 'admin_database_records' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'admin_database_records' %}active{% endif %}">
+            <i class="bi bi-database"></i> Database Records
+          </a>
+          <a href="{% url 'notifications_list' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}">
+            <i class="bi bi-bell-fill"></i> Notifications
+          </a>
+
+        {% elif user.role == 'DONOR' %}
+          <!-- DONOR NAVIGATION -->
+          <div class="rg-nav-group-title">Donor Operations</div>
+          <a href="{% url 'donor_dashboard' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'donor_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Donor Overview
+          </a>
+          <a href="{% url 'donor_needs' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'donor_needs' %}active{% endif %}">
+            <i class="bi bi-card-checklist"></i> Relief Needs Summary
+          </a>
+          <a href="{% url 'donor_donate' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'donor_donate' %}active{% endif %}">
+            <i class="bi bi-plus-circle-fill"></i> Donate Supplies
+          </a>
+          <a href="{% url 'donor_my_donations' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'donor_my_donations' %}active{% endif %}">
+            <i class="bi bi-box-seam-fill"></i> My Donations
+          </a>
+          <a href="{% url 'user_map' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_map' %}active{% endif %}">
+            <i class="bi bi-map-fill"></i> Regional Map
+          </a>
+          <a href="{% url 'notifications_list' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}">
+            <i class="bi bi-bell-fill"></i> Notifications
+          </a>
+          <a href="{% url 'user_profile' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_profile' %}active{% endif %}">
+            <i class="bi bi-person-badge"></i> Account
+          </a>
+
+        {% else %}
+          <!-- USER (AFFECTED CITIZEN / HOSPITAL USER) NAVIGATION -->
+          <div class="rg-nav-group-title">Emergency Services</div>
+          <a href="{% url 'user_dashboard' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i> Dashboard Overview
+          </a>
+          <a href="{% url 'request_help' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'request_help' %}active{% endif %}">
+            <i class="bi bi-exclamation-octagon-fill text-warning"></i> Request Help
+          </a>
+          <a href="{% url 'my_requests' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}">
+            <i class="bi bi-clock-history"></i> My Requests
+          </a>
+
+          <div class="rg-nav-group-title">Nearby Facilities</div>
+          <a href="{% url 'user_map' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_map' %}active{% endif %}">
+            <i class="bi bi-map-fill"></i> Nearby Emergencies & Map
+          </a>
+          <a href="{% url 'user_hospitals' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_hospitals' %}active{% endif %}">
+            <i class="bi bi-hospital-fill"></i> Hospitals & Beds
+          </a>
+          <a href="{% url 'user_shelters' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_shelters' %}active{% endif %}">
+            <i class="bi bi-houses-fill"></i> Shelters & Resources
+          </a>
+          <a href="{% url 'notifications_list' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'notifications_list' %}active{% endif %}">
+            <i class="bi bi-bell-fill"></i> Notifications
+          </a>
+          <a href="{% url 'user_profile' %}" class="rg-nav-link {% if request.resolver_match.url_name == 'user_profile' %}active{% endif %}">
+            <i class="bi bi-person-fill"></i> Profile
+          </a>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Sidebar Footer / Active User -->
+    <div class="rg-sidebar-footer">
+      {% if user.is_authenticated %}
+        <div class="rg-sidebar-user">
+          <div class="rg-user-avatar">
+            {{ user.username|first|upper }}
+          </div>
+          <div class="rg-user-info">
+            <div class="rg-user-name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="rg-user-role-label">{{ user.get_role_display_badge }}</div>
+          </div>
+        </div>
+      {% else %}
+        <a href="{% url 'login' %}" class="btn btn-rg-primary w-100 btn-sm">Login</a>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="rg-main-wrapper">
+    <!-- Top Header -->
+    <header class="rg-header">
+      <div class="rg-header-left">
+        <button class="rg-mobile-toggle" id="sidebarToggleBtn" aria-label="Toggle navigation">
+          <i class="bi bi-list"></i>
+        </button>
+        <h1 class="rg-page-title">{% block page_title %}Operations Overview{% endblock %}</h1>
+      </div>
+
+      <div class="rg-header-right">
+        <!-- GDACS Live Status Indicator -->
+        <div class="d-none d-md-flex align-items-center me-2 text-muted" style="font-size: 0.8rem;">
+          {% if GDACS_SUMMARY.status == 'SUCCESS' %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle me-2">
+              <i class="bi bi-broadcast"></i> GDACS Live
+            </span>
+            <span>Last Sync: {{ GDACS_SUMMARY.last_successful_sync|date:"H:i" }} IST</span>
+          {% elif GDACS_SUMMARY.status == 'FAILED' %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle me-2">
+              <i class="bi bi-exclamation-triangle"></i> GDACS Sync Issue
+            </span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary me-2">
+              <i class="bi bi-circle"></i> GDACS Ready
+            </span>
+          {% endif %}
+        </div>
+
+        {% if user.is_authenticated and user.is_admin_user %}
+          <!-- Quick GDACS Manual Sync Button -->
+          <button id="quickSyncGdacsBtn" class="btn btn-sm btn-rg-outline-orange d-none d-sm-inline-flex align-items-center gap-1" title="Synchronize official GDACS feed now">
+            <i class="bi bi-arrow-repeat" id="syncIcon"></i>
+            <span>Sync GDACS</span>
+          </button>
+        {% endif %}
+
+        {% if user.is_authenticated %}
+          <!-- Notifications Bell -->
+          <a href="{% url 'notifications_list' %}" class="btn btn-sm btn-outline-secondary position-relative me-1" title="Notifications">
+            <i class="bi bi-bell"></i>
+            {% if UNREAD_NOTIFICATIONS_COUNT > 0 %}
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                {{ UNREAD_NOTIFICATIONS_COUNT }}
+              </span>
+            {% endif %}
+          </a>
+
+          <!-- User Menu Dropdown -->
+          <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle"></i>
+              <span class="d-none d-sm-inline">{{ user.username }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+              <li class="px-3 py-1">
+                <div class="fw-bold text-dark">{{ user.get_full_name|default:user.username }}</div>
+                <div class="small text-muted">{{ user.get_role_display_badge }}</div>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="{% url 'user_profile' %}"><i class="bi bi-person me-2"></i> Profile & Settings</a></li>
+              <li><a class="dropdown-item" href="{% url 'notifications_list' %}"><i class="bi bi-bell me-2"></i> Notifications</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i> Logout</button>
+                </form>
+              </li>
+            </ul>
+          </div>
+        {% else %}
+          <a href="{% url 'login' %}" class="btn btn-sm btn-rg-primary">Sign In</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="rg-content">
+      <!-- Django Alert Messages -->
+      {% if messages %}
+        <div class="mb-3">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+<script>
+  // Mobile sidebar toggle
+  const sidebar = document.getElementById('rgSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
+
+  if (toggleBtn && sidebar && overlay) {
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('show');
+    });
+
+    overlay.addEventListener('click', () => {
+      sidebar.classList.remove('show');
+      overlay.classList.remove('show');
+    });
+  }
+
+  // Quick GDACS Manual Sync
+  const quickSyncBtn = document.getElementById('quickSyncGdacsBtn');
+  const syncIcon = document.getElementById('syncIcon');
+  if (quickSyncBtn) {
+    quickSyncBtn.addEventListener('click', function() {
+      if (syncIcon) syncIcon.classList.add('spin-animation');
+      quickSyncBtn.disabled = true;
+
+      fetch("{% url 'api_gdacs_sync' %}", {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          alert(`GDACS synchronization completed successfully!\nSynced: ${data.count} events (${data.india_count} India events)`);
+          window.location.reload();
+        } else {
+          alert('GDACS sync failed: ' + (data.error || 'Unknown error'));
+        }
+      })
+      .catch(err => {
+        alert('Network error during sync: ' + err);
+      })
+      .finally(() => {
+        if (syncIcon) syncIcon.classList.remove('spin-animation');
+        quickSyncBtn.disabled = false;
+      });
+    });
+  }
+</script>
+
+<style>
+  @keyframes spin { 100% { transform: rotate(360deg); } }
+  .spin-animation { animation: spin 1s linear infinite; }
+</style>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Incident {{ req.tracking_code }}{% endblock %}
+{% block page_title %}Incident {{ req.tracking_code }}{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <!-- Left Column: Details, Timeline, Map -->
+  <div class="col-lg-8">
+    <!-- Status Pipeline Card -->
+    <div class="rg-card mb-3">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-diagram-3-fill text-warning"></i> Operations Status Pipeline
+        </h3>
+        <span class="rg-badge rg-badge-{{ req.status|lower }}">{{ req.status }}</span>
+      </div>
+      <div class="rg-card-body">
+        <!-- Visual 5-Stage Stepper -->
+        <div class="d-flex justify-content-between align-items-center text-center position-relative py-2 px-3">
+          <div class="d-flex flex-column align-items-center z-1">
+            <span class="badge rounded-circle p-2 {% if req.status == 'Pending' or req.status == 'Verified' or req.status == 'Assigned' or req.status == 'Responding' or req.status == 'Resolved' %}bg-primary text-white{% else %}bg-secondary-subtle text-muted{% endif %}" style="width: 32px; height: 32px;">1</span>
+            <span class="small fw-semibold mt-1">Pending</span>
+            <span class="text-muted" style="font-size: 0.68rem;">{{ req.created_at|date:"H:i" }}</span>
+          </div>
+
+          <div class="flex-grow-1 border-top {% if req.status != 'Pending' %}border-primary border-2{% else %}border-secondary border-dashed{% endif %} mx-2"></div>
+
+          <div class="d-flex flex-column align-items-center z-1">
+            <span class="badge rounded-circle p-2 {% if req.status == 'Verified' or req.status == 'Assigned' or req.status == 'Responding' or req.status == 'Resolved' %}bg-primary text-white{% else %}bg-secondary-subtle text-muted{% endif %}" style="width: 32px; height: 32px;">2</span>
+            <span class="small fw-semibold mt-1">Verified</span>
+            <span class="text-muted" style="font-size: 0.68rem;">{{ req.verified_at|date:"H:i"|default:"--" }}</span>
+          </div>
+
+          <div class="flex-grow-1 border-top {% if req.status == 'Assigned' or req.status == 'Responding' or req.status == 'Resolved' %}border-primary border-2{% else %}border-secondary border-dashed{% endif %} mx-2"></div>
+
+          <div class="d-flex flex-column align-items-center z-1">
+            <span class="badge rounded-circle p-2 {% if req.status == 'Assigned' or req.status == 'Responding' or req.status == 'Resolved' %}bg-primary text-white{% else %}bg-secondary-subtle text-muted{% endif %}" style="width: 32px; height: 32px;">3</span>
+            <span class="small fw-semibold mt-1">Assigned</span>
+            <span class="text-muted" style="font-size: 0.68rem;">{{ req.assigned_at|date:"H:i"|default:"--" }}</span>
+          </div>
+
+          <div class="flex-grow-1 border-top {% if req.status == 'Responding' or req.status == 'Resolved' %}border-primary border-2{% else %}border-secondary border-dashed{% endif %} mx-2"></div>
+
+          <div class="d-flex flex-column align-items-center z-1">
+            <span class="badge rounded-circle p-2 {% if req.status == 'Responding' or req.status == 'Resolved' %}bg-warning text-dark{% else %}bg-secondary-subtle text-muted{% endif %}" style="width: 32px; height: 32px;">4</span>
+            <span class="small fw-semibold mt-1">Responding</span>
+            <span class="text-muted" style="font-size: 0.68rem;">{{ req.responding_at|date:"H:i"|default:"--" }}</span>
+          </div>
+
+          <div class="flex-grow-1 border-top {% if req.status == 'Resolved' %}border-success border-2{% else %}border-secondary border-dashed{% endif %} mx-2"></div>
+
+          <div class="d-flex flex-column align-items-center z-1">
+            <span class="badge rounded-circle p-2 {% if req.status == 'Resolved' %}bg-success text-white{% else %}bg-secondary-subtle text-muted{% endif %}" style="width: 32px; height: 32px;">5</span>
+            <span class="small fw-semibold mt-1">Resolved</span>
+            <span class="text-muted" style="font-size: 0.68rem;">{{ req.resolved_at|date:"H:i"|default:"--" }}</span>
+          </div>
+        </div>
+
+        {% if req.status == 'Resolved' and req.response_time_minutes %}
+          <div class="alert alert-success mt-3 mb-0 py-2 small d-flex justify-content-between align-items-center">
+            <div>
+              <i class="bi bi-stopwatch-fill me-1"></i> <strong>Documented Response Time:</strong>
+              Resolved Time − Reported Time = <strong>{{ req.response_time_minutes }} minutes</strong>
+            </div>
+            <span class="badge bg-success">Closed</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Incident Information Card -->
+    <div class="rg-card mb-3">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-info-circle-fill text-primary"></i> Incident Situation & Need
+        </h3>
+        <span class="badge bg-light text-dark border">{{ req.get_request_type_display }}</span>
+      </div>
+      <div class="rg-card-body">
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6">
+            <div class="text-muted small">Category</div>
+            <strong class="text-dark">{{ req.category }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Severity Rating</div>
+            <strong class="text-danger">{{ req.get_severity_display }}</strong>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Affected Individuals</div>
+            <strong class="text-dark">{{ req.affected_people }} persons</strong>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">Supplies / Aid Quantity</div>
+            <strong class="text-dark">{{ req.quantity_needed }} {{ req.unit }}</strong>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="text-muted small">Incident Narrative:</div>
+          <div class="p-3 bg-light rounded border text-dark mt-1">
+            {{ req.description }}
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="text-muted small">Location Address</div>
+            <div>{{ req.address }}</div>
+            <div class="small text-muted">{{ req.district }}, {{ req.state }}</div>
+          </div>
+          <div class="col-sm-6">
+            <div class="text-muted small">GPS Coordinates</div>
+            <code>{{ req.latitude|default:"N/A" }}, {{ req.longitude|default:"N/A" }}</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini Incident Location Map -->
+    {% if req.latitude and req.longitude %}
+      <div class="rg-card">
+        <div class="rg-card-header">
+          <h3 class="rg-card-title">
+            <i class="bi bi-geo-alt-fill text-danger"></i> Geographic Location
+          </h3>
+          <span class="small text-muted">{{ req.latitude }}, {{ req.longitude }}</span>
+        </div>
+        <div class="rg-card-body p-0">
+          <div id="incidentMap" style="height: 280px; width: 100%;"></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Right Column: Priority Score Breakdown, Responder Info, Admin Management -->
+  <div class="col-lg-4">
+    <!-- Documented Priority Score Breakdown -->
+    <div class="rg-card mb-3">
+      <div class="rg-card-header bg-dark text-white">
+        <h3 class="rg-card-title text-white">
+          <i class="bi bi-calculator text-warning"></i> Emergency Priority Score
+        </h3>
+        <span class="rg-badge rg-priority-{{ req.priority_classification|lower }}">
+          {{ req.priority_classification }}
+        </span>
+      </div>
+      <div class="rg-card-body">
+        <div class="text-center p-3 rounded bg-light border mb-3">
+          <div class="small text-muted text-uppercase fw-bold">Overall Score (PS)</div>
+          <div class="display-6 fw-bold text-dark">{{ req.priority_score }}</div>
+          <div class="small text-muted">PS = 0.35S + 0.25P + 0.20W + 0.10R + 0.10D</div>
+        </div>
+
+        <h6 class="small fw-bold text-uppercase text-muted mb-2">Mathematical Component Breakdown:</h6>
+        <div class="list-group list-group-flush border rounded small">
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>S: Severity</strong>
+              <div class="text-muted" style="font-size: 0.68rem;">Weight 35% (Rating {{ req.severity }}/5)</div>
+            </div>
+            <span><strong>{{ req.score_breakdown.S|default:"--" }}</strong> &rarr; +{{ req.score_breakdown.weighted_S|default:"--" }}</span>
+          </div>
+
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>P: Affected People</strong>
+              <div class="text-muted" style="font-size: 0.68rem;">Weight 25% ({{ req.affected_people }} persons)</div>
+            </div>
+            <span><strong>{{ req.score_breakdown.P|default:"--" }}</strong> &rarr; +{{ req.score_breakdown.weighted_P|default:"--" }}</span>
+          </div>
+
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>W: Waiting Time</strong>
+              <div class="text-muted" style="font-size: 0.68rem;">Weight 20% (Normalized)</div>
+            </div>
+            <span><strong>{{ req.score_breakdown.W|default:"--" }}</strong> &rarr; +{{ req.score_breakdown.weighted_W|default:"--" }}</span>
+          </div>
+
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>R: Resource Shortage</strong>
+              <div class="text-muted" style="font-size: 0.68rem;">Weight 10% (Unmet Demand)</div>
+            </div>
+            <span><strong>{{ req.score_breakdown.R|default:"--" }}</strong> &rarr; +{{ req.score_breakdown.weighted_R|default:"--" }}</span>
+          </div>
+
+          <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+            <div>
+              <strong>D: Distance to Help</strong>
+              <div class="text-muted" style="font-size: 0.68rem;">Weight 10% (Isolation factor)</div>
+            </div>
+            <span><strong>{{ req.score_breakdown.D|default:"--" }}</strong> &rarr; +{{ req.score_breakdown.weighted_D|default:"--" }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assigned Responder -->
+    <div class="rg-card mb-3">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-person-badge text-primary"></i> Assigned Responder
+        </h3>
+      </div>
+      <div class="rg-card-body">
+        {% if req.assigned_responder %}
+          <div class="p-3 bg-light rounded border">
+            <div class="fw-bold text-dark">{{ req.assigned_responder.name }}</div>
+            <div class="small text-muted">{{ req.assigned_responder.team_name }} ({{ req.assigned_responder.get_responder_type_display }})</div>
+            <div class="mt-2 small">
+              <i class="bi bi-telephone-fill me-1 text-success"></i> <strong>{{ req.assigned_responder.phone }}</strong>
+            </div>
+            <div class="small text-muted mt-1">Status: <span class="badge bg-danger">{{ req.assigned_responder.status }}</span></div>
+          </div>
+        {% else %}
+          <div class="text-muted small p-3 text-center border rounded bg-light">
+            No responder deployed yet. Ops coordinator is assessing available teams.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Admin Status Transition Control (Only for Admin) -->
+    {% if user.is_admin_user %}
+      <div class="rg-card border-warning">
+        <div class="rg-card-header bg-warning-subtle text-dark">
+          <h3 class="rg-card-title">
+            <i class="bi bi-gear-wide-connected text-dark"></i> Admin Status & Dispatch
+          </h3>
+        </div>
+        <div class="rg-card-body">
+          <form method="post" action="{% url 'update_request_status' req.tracking_code %}">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Advance Status</label>
+              <select name="status" class="form-select form-select-sm" required>
+                <option value="Pending" {% if req.status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Verified" {% if req.status == 'Verified' %}selected{% endif %}>Verified</option>
+                <option value="Assigned" {% if req.status == 'Assigned' %}selected{% endif %}>Assigned</option>
+                <option value="Responding" {% if req.status == 'Responding' %}selected{% endif %}>Responding</option>
+                <option value="Resolved" {% if req.status == 'Resolved' %}selected{% endif %}>Resolved (Close)</option>
+              </select>
+            </div>
+
+            {% if available_responders %}
+              <div class="mb-3">
+                <label class="form-label small fw-semibold">Assign Responder Team</label>
+                <select name="responder_id" class="form-select form-select-sm">
+                  <option value="">-- Select Available Team --</option>
+                  {% for resp in available_responders %}
+                    <option value="{{ resp.id }}" {% if req.assigned_responder and req.assigned_responder.id == resp.id %}selected{% endif %}>
+                      {{ resp.name }} ({{ resp.team_name }} - {{ resp.responder_type }})
+                    </option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-rg-primary btn-sm w-100 fw-bold">
+              Update Status & Dispatch
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if req.latitude and req.longitude %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('incidentMap').setView([{{ req.latitude }}, {{ req.longitude }}], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    L.marker([{{ req.latitude }}, {{ req.longitude }}]).addTo(map)
+      .bindPopup("<strong>{{ req.tracking_code }}</strong><br>{{ req.category }}<br>Priority: {{ req.priority_classification }}")
+      .openPopup();
+  });
+</script>
+{% endif %}
+{% endblock %}

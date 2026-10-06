@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}Citizen & Facility Dashboard{% endblock %}
+{% block page_title %}Dashboard & Relief Portal{% endblock %}
+
+{% block content %}
+<!-- Quick Actions Header Banner -->
+<div class="rg-ops-banner d-flex justify-content-between align-items-center flex-wrap gap-3">
+  <div>
+    <h2 class="h5 mb-1 text-dark fw-bold">Welcome, {{ user.get_full_name|default:user.username }}</h2>
+    <div class="text-muted small">
+      Registered Base: <strong>{{ user_district }}</strong>, {{ user.state|default:"Tamil Nadu" }} &bull; Role: <span class="badge bg-light text-dark border">{{ user.get_role_display_badge }}</span>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'request_help' %}" class="btn btn-rg-primary shadow-sm">
+      <i class="bi bi-exclamation-octagon-fill me-1"></i> Request Immediate Help
+    </a>
+    <a href="{% url 'user_map' %}" class="btn btn-rg-secondary shadow-sm">
+      <i class="bi bi-geo-alt-fill text-danger me-1"></i> View Nearby Map
+    </a>
+  </div>
+</div>
+
+<!-- Hospital Facility Subtype Overview (If hospital user) -->
+{% if hospital_data %}
+  <div class="rg-card border-info mb-4">
+    <div class="rg-card-header bg-info-subtle">
+      <h3 class="rg-card-title text-info-emphasis">
+        <i class="bi bi-hospital-fill text-info"></i> Medical Center Facility Status: {{ hospital_data.name }}
+      </h3>
+      <a href="{% url 'user_profile' %}" class="btn btn-sm btn-outline-info">Update Bed Stock</a>
+    </div>
+    <div class="rg-card-body">
+      <div class="row g-3 text-center">
+        <div class="col-6 col-md-3">
+          <div class="p-2 border rounded bg-white">
+            <div class="small text-muted">Available / Total Beds</div>
+            <div class="h4 mb-0 fw-bold text-primary">{{ hospital_data.available_beds }} / {{ hospital_data.total_beds }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 border rounded bg-white">
+            <div class="small text-muted">ICU Beds Available</div>
+            <div class="h4 mb-0 fw-bold text-danger">{{ hospital_data.icu_beds_available }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 border rounded bg-white">
+            <div class="small text-muted">Oxygen Supply Available</div>
+            <div class="h4 mb-0 fw-bold text-success">{{ hospital_data.oxygen_available_liters }} L</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="p-2 border rounded bg-white">
+            <div class="small text-muted">Ambulances Ready</div>
+            <div class="h4 mb-0 fw-bold text-warning">{{ hospital_data.ambulances_available }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- User Request Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Active / Pending Requests</div>
+        <div class="rg-kpi-value text-warning">{{ my_active_requests.count }}</div>
+        <div class="rg-kpi-subtext">Under review or responder response</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-orange">
+        <i class="bi bi-hourglass-top"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Resolved Requests</div>
+        <div class="rg-kpi-value text-success">{{ my_resolved_requests.count }}</div>
+        <div class="rg-kpi-subtext">Completed assistance</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-green">
+        <i class="bi bi-check2-all"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="rg-kpi-card">
+      <div>
+        <div class="rg-kpi-label">Total Requests Logged</div>
+        <div class="rg-kpi-value text-dark">{{ my_total_count }}</div>
+        <div class="rg-kpi-subtext">All historical submissions</div>
+      </div>
+      <div class="rg-kpi-icon rg-kpi-icon-blue">
+        <i class="bi bi-journal-text"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Active Requests Table -->
+  <div class="col-lg-8">
+    <div class="rg-card h-100">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-clock-history text-warning"></i> My Active Emergency Requests
+        </h3>
+        <a href="{% url 'my_requests' %}" class="small text-decoration-none fw-semibold" style="color: #FE8D01;">View All History &rarr;</a>
+      </div>
+      <div class="rg-card-body p-0">
+        <div class="rg-table-wrapper border-0">
+          <table class="rg-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Request Type</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th class="text-end">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if my_active_requests %}
+                {% for r in my_active_requests %}
+                  <tr>
+                    <td><strong>{{ r.tracking_code }}</strong></td>
+                    <td>{{ r.get_request_type_display }}</td>
+                    <td>{{ r.category }}</td>
+                    <td>
+                      <span class="rg-badge rg-priority-{{ r.priority_classification|lower }}">
+                        {{ r.priority_classification }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="rg-badge rg-badge-{{ r.status|lower }}">{{ r.status }}</span>
+                    </td>
+                    <td class="text-end">
+                      <a href="{% url 'request_detail' r.tracking_code %}" class="btn btn-sm btn-rg-outline-orange py-0 px-2">Track</a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">
+                    No active emergency requests. If you or someone nearby needs help, click <strong>"Request Immediate Help"</strong>.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Resources & Shelters -->
+  <div class="col-lg-4">
+    <div class="rg-card h-100">
+      <div class="rg-card-header">
+        <h3 class="rg-card-title">
+          <i class="bi bi-houses text-primary"></i> Nearby Shelters & Hospitals
+        </h3>
+        <span class="badge bg-light text-dark border">{{ user_district }}</span>
+      </div>
+      <div class="rg-card-body">
+        <h6 class="small fw-bold text-muted text-uppercase mb-2">Emergency Shelters:</h6>
+        {% if nearby_shelters %}
+          <div class="list-group list-group-flush mb-3 border rounded">
+            {% for s in nearby_shelters %}
+              <div class="list-group-item py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <strong class="small">{{ s.name }}</strong>
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">
+                    {{ s.available_capacity }} spaces
+                  </span>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                  {{ s.address }} &bull; Contact: {{ s.phone }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="small text-muted mb-3 border rounded p-2 bg-light">No shelters listed in {{ user_district }}.</div>
+        {% endif %}
+
+        <h6 class="small fw-bold text-muted text-uppercase mb-2">Hospitals with Beds:</h6>
+        {% if nearby_hospitals %}
+          <div class="list-group list-group-flush mb-3 border rounded">
+            {% for h in nearby_hospitals %}
+              <div class="list-group-item py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <strong class="small">{{ h.name }}</strong>
+                  <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                    {{ h.available_beds }} beds
+                  </span>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                  ICU: {{ h.icu_beds_available }} &bull; Phone: {{ h.phone }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="small text-muted mb-3 border rounded p-2 bg-light">No hospitals registered in {{ user_district }}.</div>
+        {% endif %}
+
+        <div class="d-grid gap-2">
+          <a href="{% url 'user_shelters' %}" class="btn btn-outline-secondary btn-sm">View All Shelters</a>
+          <a href="{% url 'user_hospitals' %}" class="btn btn-outline-secondary btn-sm">View All Hospitals</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- District Emergencies Alert Feed -->
+<div class="rg-card">
+  <div class="rg-card-header">
+    <h3 class="rg-card-title">
+      <i class="bi bi-shield-exclamation text-danger"></i> Nearby District Incidents Reported ({{ user_district }})
+    </h3>
+    <a href="{% url 'user_map' %}" class="small text-decoration-none fw-semibold" style="color: #FE8D01;">Explore on Map &rarr;</a>
+  </div>
+  <div class="rg-card-body p-0">
+    <div class="rg-table-wrapper border-0">
+      <table class="rg-table">
+        <thead>
+          <tr>
+            <th>Tracking</th>
+            <th>Type</th>
+            <th>Description & Area</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th>Reported At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if nearby_emergencies %}
+            {% for em in nearby_emergencies %}
+              <tr>
+                <td><strong>{{ em.tracking_code }}</strong></td>
+                <td>{{ em.get_request_type_display }}</td>
+                <td>{{ em.address }} - <span class="text-muted">{{ em.description|truncatewords:8 }}</span></td>
+                <td>
+                  <span class="rg-badge rg-priority-{{ em.priority_classification|lower }}">{{ em.priority_classification }}</span>
+                </td>
+                <td><span class="rg-badge rg-badge-{{ em.status|lower }}">{{ em.status }}</span></td>
+                <td class="text-muted small">{{ em.created_at|date:"d M H:i" }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                No active emergencies reported in {{ user_district }}.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
