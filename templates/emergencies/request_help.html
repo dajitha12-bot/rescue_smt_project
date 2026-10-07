@@ -45,7 +45,7 @@
             <div class="row g-3">
               <div class="col-md-4">
                 <label for="severity" class="form-label small fw-semibold text-dark">Severity Level (S) *</label>
-                <select name="severity" id="severity" class="form-select" required>
+                <select name="severity" id="severity" class="form-select" required onchange="updateMarkerColor()">
                   <option value="5">5 - Catastrophic (Immediate life-threat, trapped)</option>
                   <option value="4">4 - Critical (Severe danger, rising water, injuries)</option>
                   <option value="3" selected>3 - High (Significant disruption, urgent need)</option>
@@ -106,7 +106,7 @@
             <!-- Mini Leaflet Picker Map -->
             <div class="mb-2">
               <div class="small text-muted mb-1">Click anywhere on the map to pin incident coordinates:</div>
-              <div id="pickerMap" style="height: 240px; border-radius: 6px; border: 1px solid #E5E7EB;"></div>
+              <div id="pickerMap" style="height: 260px; border-radius: 6px; border: 1px solid #E5E7EB;"></div>
             </div>
           </div>
 
@@ -135,49 +135,116 @@
 
 {% block extra_scripts %}
 <script>
-  let pickerMap, marker;
+  let pickerMap, markerCircle;
   const initialLat = parseFloat("{{ user_lat|default:'13.0827' }}");
   const initialLon = parseFloat("{{ user_lon|default:'80.2707' }}");
 
+  function getSeverityColor(sev) {
+    if (sev === '5') return '#DC2626'; // Red
+    if (sev === '4') return '#EA580C'; // Orange
+    if (sev === '3') return '#EAB308'; // Yellow
+    return '#16A34A'; // Green
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
-    pickerMap = L.map('pickerMap').setView([initialLat, initialLon], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    pickerMap = L.map('pickerMap').setView([initialLat, initialLon], 13);
+    
+    // High-resolution CartoDB Voyager tile layer (100% free, 0 API key required, no 403 blocks)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
       maxZoom: 19
     }).addTo(pickerMap);
 
-    marker = L.marker([initialLat, initialLon], {draggable: true}).addTo(pickerMap);
-
-    marker.on('dragend', function(e) {
-      const pos = marker.getLatLng();
-      document.getElementById('latitude').value = pos.lat.toFixed(5);
-      document.getElementById('longitude').value = pos.lng.toFixed(5);
-    });
+    const initialSev = document.getElementById('severity').value;
+    markerCircle = L.circleMarker([initialLat, initialLon], {
+      radius: 10,
+      fillColor: getSeverityColor(initialSev),
+      color: '#FFFFFF',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.9
+    }).addTo(pickerMap);
 
     pickerMap.on('click', function(e) {
-      marker.setLatLng(e.latlng);
-      document.getElementById('latitude').value = e.latlng.lat.toFixed(5);
-      document.getElementById('longitude').value = e.latlng.lng.toFixed(5);
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      markerCircle.setLatLng(e.latlng);
+      document.getElementById('latitude').value = lat.toFixed(5);
+      document.getElementById('longitude').value = lon.toFixed(5);
+      reverseGeocode(lat, lon);
     });
 
     // Detect GPS button
     document.getElementById('detectGpsBtn').addEventListener('click', function() {
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Locating...';
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(pos) {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
           document.getElementById('latitude').value = lat.toFixed(5);
           document.getElementById('longitude').value = lon.toFixed(5);
-          marker.setLatLng([lat, lon]);
+          markerCircle.setLatLng([lat, lon]);
           pickerMap.setView([lat, lon], 14);
+
+          // Reverse geocode to autofill district, state, address
+          reverseGeocode(lat, lon, function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i> Location Updated';
+            setTimeout(() => {
+              btn.innerHTML = '<i class="bi bi-crosshair me-1"></i> Detect My Current GPS Location';
+            }, 3000);
+          });
         }, function(err) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-crosshair me-1"></i> Detect My Current GPS Location';
           alert('GPS location detection failed: ' + err.message);
         });
       } else {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-crosshair me-1"></i> Detect My Current GPS Location';
         alert('Geolocation is not supported by your browser.');
       }
     });
   });
+
+  function updateMarkerColor() {
+    if (markerCircle) {
+      const sev = document.getElementById('severity').value;
+      markerCircle.setStyle({ fillColor: getSeverityColor(sev) });
+    }
+  }
+
+  function reverseGeocode(lat, lon, callback) {
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.address) {
+          const addr = data.address;
+          const district = addr.state_district || addr.county || addr.district || addr.city_district || addr.city || '';
+          const state = addr.state || 'Tamil Nadu';
+          const displayAddr = data.display_name || '';
+
+          if (district) {
+            document.getElementById('district').value = district.replace(' District', '').replace(' district', '');
+          }
+          if (state) {
+            document.getElementById('state').value = state;
+          }
+          if (displayAddr) {
+            document.getElementById('address').value = displayAddr;
+          }
+        }
+        if (callback) callback();
+      })
+      .catch(err => {
+        console.error('Reverse geocode error:', err);
+        if (callback) callback();
+      });
+  }
 
   function handleTypeChange() {
     const type = document.getElementById('request_type').value;
