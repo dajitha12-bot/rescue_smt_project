@@ -9,7 +9,10 @@ if 'VERCEL' in os.environ or os.getenv('VERCEL') == '1' or 'AWS_LAMBDA_FUNCTION_
     try:
         from django.core.management import call_command
         call_command('migrate', interactive=False)
+        from core.models import User
+        if User.objects.count() == 0:
+            call_command('seed_data', interactive=False)
     except Exception as exc:
-        print(f"Vercel DB Migration Exception: {exc}")
+        print(f"Vercel DB Migration/Seed Exception: {exc}")
 
 app = application
