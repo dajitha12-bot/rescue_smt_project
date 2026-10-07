@@ -10,11 +10,27 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard_redirect')
 
+    # Auto-seed database if no users exist (Vercel serverless cold-start safety)
+    if User.objects.count() == 0:
+        try:
+            from django.core.management import call_command
+            call_command('seed_data', interactive=False)
+        except Exception as exc:
+            print(f"Auto seed error: {exc}")
+
     if request.method == 'POST':
         # Quick login demonstration shortcuts
         demo_user = request.POST.get('demo_user')
         if demo_user:
             user = User.objects.filter(username=demo_user).first()
+            if not user:
+                try:
+                    from django.core.management import call_command
+                    call_command('seed_data', interactive=False)
+                    user = User.objects.filter(username=demo_user).first()
+                except Exception as exc:
+                    print(f"Demo user seed error: {exc}")
+
             if user:
                 login(request, user)
                 messages.success(request, f"Logged in as {user.get_full_name() or user.username} ({user.get_role_display_badge()})")
