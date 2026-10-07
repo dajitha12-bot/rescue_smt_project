@@ -6,17 +6,57 @@ from .models import User
 from emergencies.models import EmergencyRequest
 from relief.models import Hospital
 
+def ensure_demo_users():
+    demo_configs = {
+        'admin': {
+            'email': 'ops.admin@rescuegrid.in',
+            'first_name': 'Operations',
+            'last_name': 'Director',
+            'role': User.ROLE_ADMIN,
+            'user_subtype': User.SUBTYPE_AFFECTED_PERSON,
+            'is_staff': True,
+            'is_superuser': True,
+        },
+        'citizen1': {
+            'email': 'karthik.selvam@gmail.com',
+            'first_name': 'Karthik',
+            'last_name': 'Selvam',
+            'role': User.ROLE_USER,
+            'user_subtype': User.SUBTYPE_AFFECTED_PERSON,
+            'district': 'Cuddalore',
+        },
+        'hospital_user': {
+            'email': 'emergency.dept@mmch.tn.gov.in',
+            'first_name': 'Dr. S.',
+            'last_name': 'Ramanathan',
+            'role': User.ROLE_USER,
+            'user_subtype': User.SUBTYPE_HOSPITAL,
+            'organization_name': 'Rajiv Gandhi Government General Hospital',
+            'district': 'Chennai',
+        },
+        'donor1': {
+            'email': 'anitha.relief@aidfound.org',
+            'first_name': 'Anitha',
+            'last_name': 'Sundaram',
+            'role': User.ROLE_DONOR,
+            'user_subtype': User.SUBTYPE_DONOR_ORG,
+            'organization_name': 'Tamil Nadu Coastal Relief Trust',
+            'district': 'Chennai',
+        },
+    }
+
+    for username, defaults in demo_configs.items():
+        user, created = User.objects.get_or_create(username=username, defaults=defaults)
+        if created or not user.check_password('rescue2026'):
+            user.set_password('rescue2026')
+            user.save()
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard_redirect')
 
-    # Auto-seed database if no users exist (Vercel serverless cold-start safety)
-    if User.objects.count() == 0:
-        try:
-            from django.core.management import call_command
-            call_command('seed_data', interactive=False)
-        except Exception as exc:
-            print(f"Auto seed error: {exc}")
+    # Instant zero-latency check & auto-creation of demo accounts
+    ensure_demo_users()
 
     if request.method == 'POST':
         # Quick login demonstration shortcuts
@@ -24,12 +64,8 @@ def login_view(request):
         if demo_user:
             user = User.objects.filter(username=demo_user).first()
             if not user:
-                try:
-                    from django.core.management import call_command
-                    call_command('seed_data', interactive=False)
-                    user = User.objects.filter(username=demo_user).first()
-                except Exception as exc:
-                    print(f"Demo user seed error: {exc}")
+                ensure_demo_users()
+                user = User.objects.filter(username=demo_user).first()
 
             if user:
                 login(request, user)
