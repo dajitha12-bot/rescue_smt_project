@@ -149,10 +149,9 @@
   document.addEventListener('DOMContentLoaded', function() {
     pickerMap = L.map('pickerMap').setView([initialLat, initialLon], 13);
     
-    // High-resolution CartoDB Voyager tile layer (100% free, 0 API key required, no 403 blocks)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
+    // OpenStreetMap Humanitarian (HOT) tiles (100% Free, 0 API Key required, no watermarks, no blocks)
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">Humanitarian OpenStreetMap Team</a>',
       maxZoom: 19
     }).addTo(pickerMap);
 
