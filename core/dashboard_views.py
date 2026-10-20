@@ -124,6 +124,73 @@ def admin_emergencies(request):
     if not request.user.is_admin_user():
         return redirect('dashboard_redirect')
 
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        now = timezone.now()
+
+        if action == 'allocate_donation':
+            req_id = request.POST.get('emergency_id')
+            don_id = request.POST.get('donation_id')
+            try:
+                em_req = EmergencyRequest.objects.get(id=req_id)
+                don = Donation.objects.get(id=don_id)
+                
+                don.allocated_to_request = em_req
+                don.status = Donation.STATUS_ALLOCATED
+                don.allocated_at = now
+                don.save()
+
+                if em_req.status in [EmergencyRequest.STATUS_PENDING, EmergencyRequest.STATUS_VERIFIED]:
+                    em_req.status = EmergencyRequest.STATUS_ASSIGNED
+                    if not em_req.assigned_at:
+                        em_req.assigned_at = now
+                em_req.save()
+
+                Notification.objects.create(
+                    recipient=em_req.reported_by,
+                    title=f"Supplies Allocated: {em_req.tracking_code}",
+                    message=f"Donation '{don.item_name}' ({don.quantity} {don.unit}) from donor '{don.donor.get_full_name() or don.donor.username}' has been allocated to your emergency request.",
+                    notification_type=Notification.TYPE_DONATION,
+                    link_url=f"/emergencies/track/{em_req.tracking_code}/"
+                )
+                messages.success(request, f"Allocated donor supplies '{don.item_name}' ({don.quantity} {don.unit}) from donor '{don.donor.get_full_name() or don.donor.username}' to Emergency {em_req.tracking_code} using Resource Allocation Model.")
+            except (EmergencyRequest.DoesNotExist, Donation.DoesNotExist):
+                messages.error(request, "Emergency request or Donation record not found.")
+
+            return redirect('admin_emergencies')
+
+        elif action == 'assign_responder':
+            req_id = request.POST.get('emergency_id')
+            resp_id = request.POST.get('responder_id')
+            try:
+                em_req = EmergencyRequest.objects.get(id=req_id)
+                resp = Responder.objects.get(id=resp_id)
+
+                em_req.assigned_responder = resp
+                em_req.status = EmergencyRequest.STATUS_ASSIGNED
+                if not em_req.assigned_at:
+                    em_req.assigned_at = now
+                em_req.save()
+
+                resp.status = 'Deployed'
+                resp.save()
+
+                Notification.objects.create(
+                    recipient=em_req.reported_by,
+                    title=f"Responder Dispatched: {em_req.tracking_code}",
+                    message=f"Responder '{resp.name}' ({resp.team_name} - {resp.responder_type}) has been deployed to assist your incident.",
+                    notification_type=Notification.TYPE_STATUS_UPDATE,
+                    link_url=f"/emergencies/track/{em_req.tracking_code}/"
+                )
+                messages.success(request, f"Assigned & deployed responder {resp.name} ({resp.responder_type} - {resp.team_name}) to Emergency {em_req.tracking_code}.")
+            except (EmergencyRequest.DoesNotExist, Responder.DoesNotExist):
+                messages.error(request, "Emergency request or Responder record not found.")
+
+            return redirect('admin_emergencies')
+
     query = EmergencyRequest.objects.all().order_by('-priority_score', '-created_at')
 
     status_filter = request.GET.get('status')
@@ -138,6 +205,13 @@ def admin_emergencies(request):
     if district_filter:
         query = query.filter(district__icontains=district_filter)
 
+    available_donations = Donation.objects.filter(
+        allocated_to_request__isnull=True
+    ).exclude(status=Donation.STATUS_DELIVERED).order_by('-created_at')
+
+    available_responders = Responder.objects.filter(status='Available').order_by('name')
+    all_responders = Responder.objects.all().order_by('status', 'name')
+
     return render(request, 'admin/emergencies.html', {
         'emergencies': query,
         'status_filter': status_filter,
@@ -145,6 +219,9 @@ def admin_emergencies(request):
         'district_filter': district_filter,
         'STATUS_FLOW': EmergencyRequest.STATUS_FLOW,
         'PRIORITY_LEVELS': EmergencyRequest.PRIORITY_LEVEL_CHOICES,
+        'available_donations': available_donations,
+        'available_responders': available_responders,
+        'all_responders': all_responders,
     })
 
 

@@ -1,21 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}Emergency Management Queue{% endblock %}
-{% block page_title %}Emergency Incidents Queue{% endblock %}
+{% block title %}Emergency Management Queue & Dispatch{% endblock %}
+{% block page_title %}Emergency Incident Triage & Allocation{% endblock %}
 
 {% block content %}
-<div class="rg-card">
-  <div class="rg-card-header">
-    <h3 class="rg-card-title">
-      <i class="bi bi-exclamation-triangle-fill text-danger"></i> Incident Triage & Emergency Response Queue
-    </h3>
-    <a href="{% url 'request_help' %}" class="btn btn-sm btn-rg-primary">
-      <i class="bi bi-plus-circle me-1"></i> Log Manual Emergency
-    </a>
+<!-- Mathematical Simulation Models Header Banner -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="p-3 bg-white rounded border shadow-sm h-100">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-sort-numeric-down me-1"></i> Model 1: Triage Queue Priority Score</h6>
+        <span class="badge bg-danger-subtle text-danger border">Greedy Triage Ordering</span>
+      </div>
+      <p class="small text-muted mb-2">Requests are ranked by urgency score: <code>PS = 0.35S + 0.25P + 0.20W + 0.10R + 0.10D</code> (Critical &ge; 75, High 55–75, Medium 35–55, Low &lt; 35). Highest priority cases appear at the top.</p>
+    </div>
   </div>
+  <div class="col-md-6">
+    <div class="p-3 bg-white rounded border shadow-sm h-100">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-boxes me-1"></i> Model 2: Resource Allocation Model</h6>
+        <span class="badge bg-primary-subtle text-primary border">Proportional Split</span>
+      </div>
+      <p class="small text-muted mb-2">Serves highest priority requests first, never exceeds stock: <code>RA_i = (N_i &times; D_i &times; S_i / &sum; N_j &times; D_j &times; S_j) &times; R_t</code>. Match donor pledges directly to active emergency demands.</p>
+    </div>
+  </div>
+</div>
+
+<div class="rg-card">
+  <div class="rg-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h3 class="rg-card-title mb-0">
+        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Active Incident Triage Queue
+      </h3>
+      <div class="text-muted small mt-1">
+        Showing all emergency requests ordered strictly by <strong>Priority Score (Triage Queue)</strong>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'admin_donations' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-heart-pulse-fill text-danger me-1"></i> Donations Pipeline ({{ available_donations.count }} Available)
+      </a>
+      <a href="{% url 'admin_responders' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-person-badge-fill text-info me-1"></i> Responders on Duty ({{ available_responders.count }} Available)
+      </a>
+      <a href="{% url 'request_help' %}" class="btn btn-sm btn-rg-primary">
+        <i class="bi bi-plus-circle me-1"></i> Log Manual Emergency
+      </a>
+    </div>
+  </div>
+
   <div class="rg-card-body">
     <!-- Filter bar -->
-    <form method="get" class="rg-filter-bar">
+    <form method="get" class="rg-filter-bar mb-3">
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <select name="status" class="form-select form-select-sm" style="width: auto;">
           <option value="">All Statuses</option>
@@ -31,7 +67,7 @@
           {% endfor %}
         </select>
 
-        <input type="text" name="district" class="form-control form-control-sm" placeholder="District..." value="{{ district_filter|default:'' }}" style="width: 140px;">
+        <input type="text" name="district" class="form-control form-control-sm" placeholder="Filter district..." value="{{ district_filter|default:'' }}" style="width: 150px;">
 
         <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
         {% if status_filter or priority_filter or district_filter %}
@@ -44,30 +80,40 @@
       <table class="rg-table">
         <thead>
           <tr>
+            <th style="width: 60px;">Queue</th>
             <th>Code</th>
-            <th>Type</th>
-            <th>Category & Address</th>
-            <th>Affected</th>
-            <th>Severity</th>
+            <th>Type & Category</th>
+            <th>Needed & Affected</th>
             <th>Priority (PS)</th>
             <th>Status</th>
+            <th>Allocated Donation</th>
             <th>Assigned Responder</th>
-            <th>Reported Time</th>
-            <th class="text-end">Manage</th>
+            <th class="text-end" style="min-width: 250px;">Dispatch Actions</th>
           </tr>
         </thead>
         <tbody>
           {% if emergencies %}
             {% for em in emergencies %}
               <tr>
-                <td><strong>{{ em.tracking_code }}</strong></td>
-                <td>{{ em.get_request_type_display }}</td>
+                <td>
+                  <span class="badge {% if forloop.counter == 1 %}bg-danger{% elif forloop.counter <= 3 %}bg-warning text-dark{% else %}bg-secondary{% endif %} rounded-pill px-2">
+                    #{{ forloop.counter }}
+                  </span>
+                </td>
+                <td>
+                  <a href="{% url 'request_detail' em.tracking_code %}" class="fw-bold text-decoration-none text-dark">
+                    {{ em.tracking_code }}
+                  </a>
+                  <div class="text-muted small">{{ em.created_at|date:"d M H:i" }}</div>
+                </td>
                 <td>
                   <strong>{{ em.category }}</strong>
-                  <div class="text-muted small">{{ em.address }} ({{ em.district }})</div>
+                  <div class="text-muted small">{{ em.district }}, {{ em.state }}</div>
                 </td>
-                <td><strong>{{ em.affected_people }}</strong></td>
-                <td><span class="badge bg-light text-dark border">Level {{ em.severity }}</span></td>
+                <td>
+                  <div><strong>{{ em.quantity_needed }}</strong> {{ em.unit }}</div>
+                  <div class="text-muted small">{{ em.affected_people }} people affected</div>
+                </td>
                 <td>
                   <span class="rg-badge rg-priority-{{ em.priority_classification|lower }}">
                     {{ em.priority_classification }} ({{ em.priority_score }})
@@ -77,24 +123,166 @@
                   <span class="rg-badge rg-badge-{{ em.status|lower }}">{{ em.status }}</span>
                 </td>
                 <td>
-                  {% if em.assigned_responder %}
-                    <span class="badge bg-info-subtle text-info-emphasis">{{ em.assigned_responder.name }}</span>
+                  {% if em.allocated_donations.all %}
+                    {% for d in em.allocated_donations.all %}
+                      <div class="badge bg-success-subtle text-success border border-success-subtle text-start p-1 mb-1">
+                        <i class="bi bi-gift-fill me-1"></i> {{ d.item_name }} ({{ d.quantity }} {{ d.unit }})
+                        <div class="small text-muted" style="font-size: 0.7rem;">From: {{ d.donor.get_full_name|default:d.donor.username }}</div>
+                      </div>
+                    {% endfor %}
                   {% else %}
-                    <span class="text-muted small">Unassigned</span>
+                    <span class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>None allocated</span>
                   {% endif %}
                 </td>
-                <td class="text-muted small">{{ em.created_at|date:"d M H:i" }}</td>
+                <td>
+                  {% if em.assigned_responder %}
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle text-start p-1">
+                      <i class="bi bi-shield-check me-1"></i> {{ em.assigned_responder.name }}
+                      <div class="small text-muted" style="font-size: 0.7rem;">{{ em.assigned_responder.team_name }}</div>
+                    </span>
+                  {% else %}
+                    <span class="text-muted small"><i class="bi bi-dash-circle me-1"></i>Unassigned</span>
+                  {% endif %}
+                </td>
                 <td class="text-end">
-                  <a href="{% url 'request_detail' em.tracking_code %}" class="btn btn-sm btn-rg-outline-orange py-1 px-2" style="font-size: 0.78rem;">
-                    Triage & Respond
-                  </a>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <!-- Button 1: Donate / Allocate Donation -->
+                    <button type="button" class="btn btn-rg-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#donateModal{{ em.id }}" title="Allocate Available Donor Supplies">
+                      <i class="bi bi-gift-fill me-1"></i> Donate Supplies
+                    </button>
+
+                    <!-- Button 2: Assign Responder -->
+                    <button type="button" class="btn btn-outline-info py-1 px-2" data-bs-toggle="modal" data-bs-target="#assignModal{{ em.id }}" title="Assign Available Responder Team">
+                      <i class="bi bi-person-badge-fill me-1"></i> Assign Responder
+                    </button>
+
+                    <a href="{% url 'request_detail' em.tracking_code %}" class="btn btn-outline-secondary py-1 px-2" title="View Full Details & Map">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  </div>
                 </td>
               </tr>
+
+              <!-- Modal 1: Donate / Allocate Donation -->
+              <div class="modal fade text-start" id="donateModal{{ em.id }}" tabindex="-1" aria-labelledby="donateModalLabel{{ em.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <form method="post" action="{% url 'admin_emergencies' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="allocate_donation">
+                      <input type="hidden" name="emergency_id" value="{{ em.id }}">
+                      
+                      <div class="modal-header bg-light">
+                        <h5 class="modal-title h6 fw-bold mb-0" id="donateModalLabel{{ em.id }}">
+                          <i class="bi bi-gift-fill text-warning me-1"></i> Allocate Donation to {{ em.tracking_code }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+
+                      <div class="modal-body">
+                        <div class="p-2 mb-3 bg-light rounded border small">
+                          <div><strong>Incident:</strong> {{ em.category }} ({{ em.district }})</div>
+                          <div><strong>Demand Needed:</strong> {{ em.quantity_needed }} {{ em.unit }}</div>
+                          <div><strong>Priority Score:</strong> <span class="badge bg-danger">{{ em.priority_score }} ({{ em.priority_classification }})</span></div>
+                          <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                            Model: <code>RA_i = (N_i &times; D_i &times; S_i / &sum;) &times; R_t</code>. Matches donor pledges to emergency requests.
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label class="form-label small fw-bold">Select Available Donation from Donors:</label>
+                          {% if available_donations %}
+                            <select name="donation_id" class="form-select form-select-sm" required>
+                              <option value="">-- Choose Donor Contribution --</option>
+                              {% for don in available_donations %}
+                                <option value="{{ don.id }}">
+                                  {{ don.tracking_code }}: {{ don.item_name }} ({{ don.quantity }} {{ don.unit }}) - Donor: {{ don.donor.get_full_name|default:don.donor.username }}
+                                </option>
+                              {% endfor %}
+                            </select>
+                            <div class="form-text small">Lists unallocated donations received from active donors.</div>
+                          {% else %}
+                            <div class="alert alert-warning py-2 small mb-0">
+                              <i class="bi bi-exclamation-circle me-1"></i> No unallocated donor supplies currently available. Donors can pledge new items via the Donor Portal.
+                            </div>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        {% if available_donations %}
+                          <button type="submit" class="btn btn-sm btn-rg-primary">
+                            <i class="bi bi-check-circle me-1"></i> Confirm Donation Allocation
+                          </button>
+                        {% endif %}
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal 2: Assign Responder -->
+              <div class="modal fade text-start" id="assignModal{{ em.id }}" tabindex="-1" aria-labelledby="assignModalLabel{{ em.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <form method="post" action="{% url 'admin_emergencies' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="assign_responder">
+                      <input type="hidden" name="emergency_id" value="{{ em.id }}">
+
+                      <div class="modal-header bg-light">
+                        <h5 class="modal-title h6 fw-bold mb-0" id="assignModalLabel{{ em.id }}">
+                          <i class="bi bi-person-badge-fill text-info me-1"></i> Assign Responder to {{ em.tracking_code }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+
+                      <div class="modal-body">
+                        <div class="p-2 mb-3 bg-light rounded border small">
+                          <div><strong>Incident:</strong> {{ em.category }}</div>
+                          <div><strong>Location:</strong> {{ em.address }} ({{ em.district }})</div>
+                          <div><strong>Affected:</strong> {{ em.affected_people }} people (Severity Level {{ em.severity }})</div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label class="form-label small fw-bold">Select Available Responder on Standby:</label>
+                          {% if available_responders %}
+                            <select name="responder_id" class="form-select form-select-sm" required>
+                              <option value="">-- Choose Available Responder --</option>
+                              {% for r in available_responders %}
+                                <option value="{{ r.id }}">
+                                  {{ r.name }} [{{ r.responder_type }}] - {{ r.team_name }} ({{ r.current_location_name }})
+                                </option>
+                              {% endfor %}
+                            </select>
+                            <div class="form-text small">Filtered from the Responders on Duty roster.</div>
+                          {% else %}
+                            <div class="alert alert-warning py-2 small mb-0">
+                              <i class="bi bi-exclamation-triangle me-1"></i> No responders currently marked as 'Available'. You can register new responders in the Responders page.
+                            </div>
+                          {% endif %}
+                        </div>
+                      </div>
+
+                      <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        {% if available_responders %}
+                          <button type="submit" class="btn btn-sm btn-info text-white">
+                            <i class="bi bi-send-check me-1"></i> Deploy & Assign Responder
+                          </button>
+                        {% endif %}
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="10" class="text-center py-4 text-muted">
-                No emergencies found matching the filter criteria.
+              <td colspan="9" class="text-center py-4 text-muted">
+                No emergencies found in the queue matching the selected filter criteria.
               </td>
             </tr>
           {% endif %}
@@ -104,3 +292,4 @@
   </div>
 </div>
 {% endblock %}
+

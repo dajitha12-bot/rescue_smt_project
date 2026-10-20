@@ -119,6 +119,9 @@ def donor_my_donations(request):
 
 @login_required
 def user_hospitals(request):
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     hospitals = Hospital.objects.all().order_by('-available_beds')
     
     district_filter = request.GET.get('district')
@@ -132,6 +135,9 @@ def user_hospitals(request):
 
 @login_required
 def user_shelters(request):
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     shelters = Shelter.objects.filter(is_active=True).order_by('-total_capacity')
 
     district_filter = request.GET.get('district')
@@ -152,15 +158,29 @@ def admin_donations(request):
         messages.error(request, "Admin access required.")
         return redirect('dashboard_redirect')
 
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     donations = Donation.objects.all().order_by('-created_at')
     status_filter = request.GET.get('status')
     if status_filter:
         donations = donations.filter(status=status_filter)
 
+    total_count = Donation.objects.count()
+    verified_count = Donation.objects.filter(status=Donation.STATUS_VERIFIED).count()
+    received_count = Donation.objects.filter(status=Donation.STATUS_RECEIVED).count()
+    allocated_count = Donation.objects.filter(status=Donation.STATUS_ALLOCATED).count()
+    delivered_count = Donation.objects.filter(status=Donation.STATUS_DELIVERED).count()
+
     return render(request, 'admin/donations.html', {
         'donations': donations,
         'status_filter': status_filter,
         'STATUS_CHOICES': Donation.STATUS_CHOICES,
+        'total_count': total_count,
+        'verified_count': verified_count,
+        'received_count': received_count,
+        'allocated_count': allocated_count,
+        'delivered_count': delivered_count,
     })
 
 @login_required
