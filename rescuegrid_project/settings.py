@@ -104,6 +104,18 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard_redirect'
 LOGOUT_REDIRECT_URL = 'login'
 
+# --- Session: use signed cookies so sessions survive Vercel serverless cold starts ---
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = IS_VERCEL   # HTTPS only on Vercel
+SESSION_COOKIE_AGE = 86400 * 7     # 7 days
+
+# --- CSRF: trust Vercel deployment domains ---
+CSRF_TRUSTED_ORIGINS = [
+    'https://rescue-smt-project.vercel.app',
+    'https://*.vercel.app',
+]
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
