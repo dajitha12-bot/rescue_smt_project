@@ -88,6 +88,9 @@ def my_requests(request):
     """
     Lists the current user's requests with priority, status timeline, and filters.
     """
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     user_reqs = EmergencyRequest.objects.filter(reported_by=request.user).order_by('-created_at')
     
     # Status filter

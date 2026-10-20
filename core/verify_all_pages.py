@@ -37,6 +37,9 @@ test_urls = [
 
     # Hospital subtype user
     ('user_dashboard', hospital_user, 200, None),
+    ('my_requests', hospital_user, 200, None),
+    ('user_hospitals', hospital_user, 200, None),
+    ('user_shelters', hospital_user, 200, None),
     ('user_profile', hospital_user, 200, None),
 
     # Donor URLs

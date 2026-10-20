@@ -14,6 +14,9 @@ def donor_dashboard(request):
     if request.user.role != 'DONOR' and not request.user.is_admin_user():
         return redirect('dashboard_redirect')
 
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     user_donations = Donation.objects.filter(donor=request.user)
 
     # Strictly calculated statistics from real database records (no fake data)
@@ -41,6 +44,9 @@ def donor_needs(request):
     """
     Displays actual relief needs from verified or pending emergency requests.
     """
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     needs = EmergencyRequest.objects.exclude(status=EmergencyRequest.STATUS_RESOLVED).order_by('-priority_score')
     
     # Filter by category
@@ -109,6 +115,9 @@ def donor_donate(request):
 
 @login_required
 def donor_my_donations(request):
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     donations = Donation.objects.filter(donor=request.user).order_by('-created_at')
     return render(request, 'donor/my_donations.html', {
         'donations': donations,
@@ -234,6 +243,9 @@ def admin_resources(request):
         messages.error(request, "Admin access required.")
         return redirect('dashboard_redirect')
 
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'add':
@@ -276,6 +288,9 @@ def admin_facilities(request):
     if not request.user.is_admin_user():
         messages.error(request, "Admin access required.")
         return redirect('dashboard_redirect')
+
+    from core.views import ensure_demo_data
+    ensure_demo_data()
 
     if request.method == 'POST':
         facility_type = request.POST.get('facility_type')
@@ -347,6 +362,9 @@ def admin_responders(request):
     if not request.user.is_admin_user():
         messages.error(request, "Admin access required.")
         return redirect('dashboard_redirect')
+
+    from core.views import ensure_demo_data
+    ensure_demo_data()
 
     if request.method == 'POST':
         action = request.POST.get('action')

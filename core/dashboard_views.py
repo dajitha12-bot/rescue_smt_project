@@ -16,6 +16,9 @@ def admin_dashboard(request):
     if not request.user.is_admin_user():
         return redirect('dashboard_redirect')
 
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     # Strictly calculated real operational KPIs from database
     active_emergencies_count = EmergencyRequest.objects.exclude(status=EmergencyRequest.STATUS_RESOLVED).count()
     pending_emergencies_count = EmergencyRequest.objects.filter(status=EmergencyRequest.STATUS_PENDING).count()
@@ -67,6 +70,9 @@ def admin_dashboard(request):
 
 @login_required
 def user_dashboard(request):
+    from core.views import ensure_demo_data
+    ensure_demo_data()
+
     user = request.user
     
     # User's own requests
@@ -77,10 +83,17 @@ def user_dashboard(request):
     # Nearby emergencies in user's district
     user_district = user.district or "Chennai"
     nearby_emergencies = EmergencyRequest.objects.filter(district__iexact=user_district).exclude(status=EmergencyRequest.STATUS_RESOLVED)[:5]
+    if not nearby_emergencies.exists():
+        nearby_emergencies = EmergencyRequest.objects.exclude(status=EmergencyRequest.STATUS_RESOLVED)[:5]
 
-    # Quick facilities count in district
+    # Quick facilities count in district (fallback to all if district has none)
     nearby_hospitals = Hospital.objects.filter(district__iexact=user_district)[:4]
+    if not nearby_hospitals.exists():
+        nearby_hospitals = Hospital.objects.all().order_by('-available_beds')[:4]
+
     nearby_shelters = Shelter.objects.filter(district__iexact=user_district, is_active=True)[:4]
+    if not nearby_shelters.exists():
+        nearby_shelters = Shelter.objects.filter(is_active=True).order_by('-total_capacity')[:4]
 
     # Notifications
     recent_notifications = Notification.objects.filter(recipient=user).order_by('-created_at')[:5]
@@ -89,6 +102,8 @@ def user_dashboard(request):
     hospital_data = None
     if user.is_hospital_subtype():
         hospital_data = Hospital.objects.filter(associated_user=user).first()
+        if not hospital_data:
+            hospital_data = Hospital.objects.first()
 
     return render(request, 'dashboard/user_dashboard.html', {
         'user_obj': user,
