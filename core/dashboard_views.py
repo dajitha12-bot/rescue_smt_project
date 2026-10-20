@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from emergencies.models import EmergencyRequest
 from relief.models import Resource, Donation, Hospital, Shelter, Responder
@@ -149,10 +150,20 @@ def admin_emergencies(request):
         if action == 'allocate_donation':
             req_id = request.POST.get('emergency_id')
             don_id = request.POST.get('donation_id')
+
+            if not don_id:
+                messages.error(request, "Please select an available donation item from depot stock.")
+                return redirect('admin_emergencies')
+
             try:
                 em_req = EmergencyRequest.objects.get(id=req_id)
                 don = Donation.objects.get(id=don_id)
                 
+                # Check item is actually available for allocation
+                if don.allocated_to_request is not None or don.status == Donation.STATUS_ALLOCATED:
+                    messages.error(request, f"Donation item '{don.item_name}' ({don.tracking_code}) is already allocated to another incident and unavailable.")
+                    return redirect('admin_emergencies')
+
                 don.allocated_to_request = em_req
                 don.status = Donation.STATUS_ALLOCATED
                 don.allocated_at = now
@@ -171,15 +182,20 @@ def admin_emergencies(request):
                     notification_type=Notification.TYPE_DONATION,
                     link_url=f"/emergencies/track/{em_req.tracking_code}/"
                 )
-                messages.success(request, f"Allocated donor supplies '{don.item_name}' ({don.quantity} {don.unit}) from donor '{don.donor.get_full_name() or don.donor.username}' to Emergency {em_req.tracking_code} using Resource Allocation Model.")
+                messages.success(request, f"Successfully allocated donor supplies '{don.item_name}' ({don.quantity} {don.unit}) from donor '{don.donor.get_full_name() or don.donor.username}' to Emergency {em_req.tracking_code}.")
             except (EmergencyRequest.DoesNotExist, Donation.DoesNotExist):
-                messages.error(request, "Emergency request or Donation record not found.")
+                messages.error(request, "Selected emergency incident or donation record was not found.")
 
             return redirect('admin_emergencies')
 
         elif action == 'assign_responder':
             req_id = request.POST.get('emergency_id')
             resp_id = request.POST.get('responder_id')
+
+            if not resp_id:
+                messages.error(request, "Please select an available responder on standby.")
+                return redirect('admin_emergencies')
+
             try:
                 em_req = EmergencyRequest.objects.get(id=req_id)
                 resp = Responder.objects.get(id=resp_id)
@@ -200,7 +216,7 @@ def admin_emergencies(request):
                     notification_type=Notification.TYPE_STATUS_UPDATE,
                     link_url=f"/emergencies/track/{em_req.tracking_code}/"
                 )
-                messages.success(request, f"Assigned & deployed responder {resp.name} ({resp.responder_type} - {resp.team_name}) to Emergency {em_req.tracking_code}.")
+                messages.success(request, f"Successfully assigned & deployed responder {resp.name} ({resp.responder_type} - {resp.team_name}) to Emergency {em_req.tracking_code}.")
             except (EmergencyRequest.DoesNotExist, Responder.DoesNotExist):
                 messages.error(request, "Emergency request or Responder record not found.")
 

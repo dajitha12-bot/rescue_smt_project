@@ -4,28 +4,6 @@
 {% block page_title %}Emergency Incident Triage & Allocation{% endblock %}
 
 {% block content %}
-<!-- Mathematical Simulation Models Header Banner -->
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <div class="p-3 bg-white rounded border shadow-sm h-100">
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-sort-numeric-down me-1"></i> Model 1: Triage Queue Priority Score</h6>
-        <span class="badge bg-danger-subtle text-danger border">Greedy Triage Ordering</span>
-      </div>
-      <p class="small text-muted mb-2">Requests are ranked by urgency score: <code>PS = 0.35S + 0.25P + 0.20W + 0.10R + 0.10D</code> (Critical &ge; 75, High 55–75, Medium 35–55, Low &lt; 35). Highest priority cases appear at the top.</p>
-    </div>
-  </div>
-  <div class="col-md-6">
-    <div class="p-3 bg-white rounded border shadow-sm h-100">
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-boxes me-1"></i> Model 2: Resource Allocation Model</h6>
-        <span class="badge bg-primary-subtle text-primary border">Proportional Split</span>
-      </div>
-      <p class="small text-muted mb-2">Serves highest priority requests first, never exceeds stock: <code>RA_i = (N_i &times; D_i &times; S_i / &sum; N_j &times; D_j &times; S_j) &times; R_t</code>. Match donor pledges directly to active emergency demands.</p>
-    </div>
-  </div>
-</div>
-
 <div class="rg-card">
   <div class="rg-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
@@ -146,15 +124,35 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group btn-group-sm" role="group">
-                    <!-- Button 1: Donate / Allocate Donation -->
-                    <button type="button" class="btn btn-rg-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#donateModal{{ em.id }}" title="Allocate Available Donor Supplies">
-                      <i class="bi bi-gift-fill me-1"></i> Donate Supplies
-                    </button>
+                    <!-- Button 1: Donate Supplies (only enabled when items are available) -->
+                    {% if em.allocated_donations.all %}
+                      <button type="button" class="btn btn-outline-success py-1 px-2 disabled" title="Supplies already allocated to this request">
+                        <i class="bi bi-check-circle-fill me-1"></i> Allocated
+                      </button>
+                    {% elif available_donations %}
+                      <button type="button" class="btn btn-rg-primary py-1 px-2" data-bs-toggle="modal" data-bs-target="#donateModal{{ em.id }}" title="Allocate Available Donor Supplies">
+                        <i class="bi bi-gift-fill me-1"></i> Donate Supplies
+                      </button>
+                    {% else %}
+                      <button type="button" class="btn btn-secondary py-1 px-2 disabled" title="No available donation items in depot stock" disabled>
+                        <i class="bi bi-slash-circle me-1"></i> Donate Supplies
+                      </button>
+                    {% endif %}
 
                     <!-- Button 2: Assign Responder -->
-                    <button type="button" class="btn btn-outline-info py-1 px-2" data-bs-toggle="modal" data-bs-target="#assignModal{{ em.id }}" title="Assign Available Responder Team">
-                      <i class="bi bi-person-badge-fill me-1"></i> Assign Responder
-                    </button>
+                    {% if em.assigned_responder %}
+                      <button type="button" class="btn btn-outline-info py-1 px-2" data-bs-toggle="modal" data-bs-target="#assignModal{{ em.id }}" title="Reassign Responder">
+                        <i class="bi bi-person-check-fill me-1"></i> Assigned
+                      </button>
+                    {% elif available_responders %}
+                      <button type="button" class="btn btn-outline-info py-1 px-2" data-bs-toggle="modal" data-bs-target="#assignModal{{ em.id }}" title="Assign Available Responder Team">
+                        <i class="bi bi-person-badge-fill me-1"></i> Assign Responder
+                      </button>
+                    {% else %}
+                      <button type="button" class="btn btn-secondary py-1 px-2 disabled" title="No responders currently on standby" disabled>
+                        <i class="bi bi-person-x me-1"></i> No Responders
+                      </button>
+                    {% endif %}
 
                     <a href="{% url 'request_detail' em.tracking_code %}" class="btn btn-outline-secondary py-1 px-2" title="View Full Details & Map">
                       <i class="bi bi-eye"></i>
@@ -183,27 +181,24 @@
                         <div class="p-2 mb-3 bg-light rounded border small">
                           <div><strong>Incident:</strong> {{ em.category }} ({{ em.district }})</div>
                           <div><strong>Demand Needed:</strong> {{ em.quantity_needed }} {{ em.unit }}</div>
-                          <div><strong>Priority Score:</strong> <span class="badge bg-danger">{{ em.priority_score }} ({{ em.priority_classification }})</span></div>
-                          <div class="text-muted mt-1" style="font-size: 0.75rem;">
-                            Model: <code>RA_i = (N_i &times; D_i &times; S_i / &sum;) &times; R_t</code>. Matches donor pledges to emergency requests.
-                          </div>
+                          <div><strong>Priority:</strong> <span class="badge bg-danger">{{ em.priority_score }} ({{ em.priority_classification }})</span></div>
                         </div>
 
                         <div class="mb-3">
                           <label class="form-label small fw-bold">Select Available Donation from Donors:</label>
                           {% if available_donations %}
                             <select name="donation_id" class="form-select form-select-sm" required>
-                              <option value="">-- Choose Donor Contribution --</option>
+                              <option value="">-- Choose Available Donor Item --</option>
                               {% for don in available_donations %}
                                 <option value="{{ don.id }}">
                                   {{ don.tracking_code }}: {{ don.item_name }} ({{ don.quantity }} {{ don.unit }}) - Donor: {{ don.donor.get_full_name|default:don.donor.username }}
                                 </option>
                               {% endfor %}
                             </select>
-                            <div class="form-text small">Lists unallocated donations received from active donors.</div>
+                            <div class="form-text small">Only unallocated items in depot stock are available.</div>
                           {% else %}
                             <div class="alert alert-warning py-2 small mb-0">
-                              <i class="bi bi-exclamation-circle me-1"></i> No unallocated donor supplies currently available. Donors can pledge new items via the Donor Portal.
+                              <i class="bi bi-exclamation-circle me-1"></i> No unallocated donor supplies currently available.
                             </div>
                           {% endif %}
                         </div>
